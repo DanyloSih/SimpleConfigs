@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34622.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleConfigs", "SimpleConfigs.csproj", "{98C3ED6F-D5E4-4114-A2EB-008A5C6C3A4E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleConfigs", "SimpleConfigs.csproj", "{98C3ED6F-D5E4-4114-A2EB-008A5C6C3A4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleConfigs.Test", "..\SimpleConfigs.Test\SimpleConfigs.Test.csproj", "{9C191133-37E3-4E09-A24A-6603FD3E0F45}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleConfigs.Test", "..\SimpleConfigs.Test\SimpleConfigs.Test.csproj", "{9C191133-37E3-4E09-A24A-6603FD3E0F45}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleConfigs.JSON", "..\SimpleConfigs.JSON\SimpleConfigs.JSON.csproj", "{D34A1514-8C3D-4028-98B4-C7D3DE36A71D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{9C191133-37E3-4E09-A24A-6603FD3E0F45}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C191133-37E3-4E09-A24A-6603FD3E0F45}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C191133-37E3-4E09-A24A-6603FD3E0F45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D34A1514-8C3D-4028-98B4-C7D3DE36A71D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D34A1514-8C3D-4028-98B4-C7D3DE36A71D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D34A1514-8C3D-4028-98B4-C7D3DE36A71D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D34A1514-8C3D-4028-98B4-C7D3DE36A71D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,6 @@
+{
+  "application_start_ticks": 638457218334719370,
+  "application_stop_ticks": 638457218358257224,
+  "ApplicationStartTime": "2024-03-11T02:43:53.471937+02:00",
+  "ApplicationStopTime": "2024-03-11T02:43:55.8257224+02:00"
+}}
