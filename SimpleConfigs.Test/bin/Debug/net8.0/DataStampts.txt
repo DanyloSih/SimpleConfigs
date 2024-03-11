@@ -1,6 +1,0 @@
-{
-  "application_start_ticks": 638457211844750463,
-  "application_stop_ticks": 0,
-  "ApplicationStartTime": "2024-03-11T02:33:04.4750463+02:00",
-  "ApplicationStopTime": "0001-01-01T00:00:00"
-}

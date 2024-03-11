@@ -1,7 +1,0 @@
-{
-  "Key": "SimpleConfigs.Test.Configs.TestConfigWithoutAnyAttributesAndInterfaces, SimpleConfigs.Test, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-  "Value": {
-    "CharacterName": "TestCharacterName",
-    "ChraracterMaxHP": 100
-  }
-}
