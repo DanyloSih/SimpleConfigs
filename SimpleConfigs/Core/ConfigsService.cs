@@ -10,7 +10,8 @@ namespace SimpleConfigs.Core
         private Dictionary<Type, object> _registeredConfigs = new Dictionary<Type, object>();
         private ISerializationManager _serializationManager;
 
-#region Constructors
+        #region Constructors
+
         /// <summary>
         /// </summary>
         /// <param name="registeringConfigTypes">
@@ -30,9 +31,11 @@ namespace SimpleConfigs.Core
 
             _serializationManager = serializationManager;
         }
-        #endregion
 
-#region Initialization
+        #endregion Constructors
+
+        #region Initialization
+
         /// <summary>
         /// Creates non-existent config files with default values and loads data from existing config files.
         /// </summary>
@@ -64,9 +67,11 @@ namespace SimpleConfigs.Core
             CreateConfigFile<T>();
             LoadConfigFromFile<T>();
         }
-#endregion
 
-#region RegisteredConfigsInfo
+        #endregion Initialization
+
+        #region RegisteredConfigsInfo
+
         /// <summary>
         /// <inheritdoc cref="GetConfig(Type)"/>
         /// </summary>
@@ -104,11 +109,13 @@ namespace SimpleConfigs.Core
         {
             return _registeredConfigs.ContainsKey(typeof(T));
         }
-        #endregion
 
-#region ConfigDataCorrectness
+        #endregion RegisteredConfigsInfo
+
+        #region ConfigDataCorrectness
+
         /// <summary>
-        /// Invoke <see cref="IDataCorrectnessChecker.CheckDataCorrectness"/> method in all config objects <br/> 
+        /// Invoke <see cref="IDataCorrectnessChecker.CheckDataCorrectness"/> method in all config objects <br/>
         /// with <see cref="IDataCorrectnessChecker"/> interface.
         /// </summary>
         public void CheckConfigsDataCorrectness()
@@ -152,9 +159,11 @@ namespace SimpleConfigs.Core
                 dataCorrectnessChecker.CheckDataCorrectness();
             }
         }
-#endregion
 
-#region CreateConfig
+        #endregion ConfigDataCorrectness
+
+        #region CreateConfig
+
         /// <summary>
         /// Create configuration files and specified directories along his paths, if they do not already exist.
         /// </summary>
@@ -203,11 +212,13 @@ namespace SimpleConfigs.Core
                 }
             }
         }
-#endregion
 
-#region SaveConfig
+        #endregion CreateConfig
+
+        #region SaveConfig
+
         /// <summary>
-        /// Creates config files with serialization data, 
+        /// Creates config files with serialization data,
         /// if they do not already exist, or overwriting already exiting files.
         /// </summary>
         public void SaveConfigsToFiles(bool checkDataCorrectness = true)
@@ -239,7 +250,7 @@ namespace SimpleConfigs.Core
         }
 
         /// <summary>
-        /// Creates config file with serialized data, 
+        /// Creates config file with serialized data,
         /// if it do not already exist, or overwriting already existing config file. <br/> <br/>
         /// Before serialization "<inheritdoc cref="CheckDataCorrectness(object, bool)"/>"
         /// </summary>
@@ -267,11 +278,13 @@ namespace SimpleConfigs.Core
                 }
             }
         }
-#endregion
 
-#region LoadConfig
+        #endregion SaveConfig
+
+        #region LoadConfig
+
         /// <summary>
-        /// Load deserialized data from config files, 
+        /// Load deserialized data from config files,
         /// if they exist, if not - throw <see cref="InvalidOperationException"/>.
         /// </summary>
         public void LoadConfigsFromFiles(bool checkDataCorrectness = true)
@@ -323,11 +336,13 @@ namespace SimpleConfigs.Core
 
             CheckDataCorrectness(configObject, checkDataCorrectness);
         }
-#endregion
 
-#region Common
+        #endregion LoadConfig
+
+        #region Common
+
         /// <summary>
-        /// Throw <see cref="ArgumentException"/> if <paramref name="configType"/> 
+        /// Throw <see cref="ArgumentException"/> if <paramref name="configType"/>
         /// not contained in <see cref="_registeredConfigs"/>
         /// </summary>
         private void CheckIsConfigTypeExist(Type configType)
@@ -340,7 +355,7 @@ namespace SimpleConfigs.Core
         }
 
         /// <summary>
-        /// Throw <see cref="ArgumentException"/> if config with <typeparamref name="T"/> type  
+        /// Throw <see cref="ArgumentException"/> if config with <typeparamref name="T"/> type
         /// does not contained in <see cref="_registeredConfigs"/>
         /// </summary>
         private void CheckIsConfigTypeExist<T>()
@@ -373,6 +388,7 @@ namespace SimpleConfigs.Core
                 serializableObject.OnAfterDeserialized();
             }
         }
-#endregion
+
+        #endregion Common
     }
 }

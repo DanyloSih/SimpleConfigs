@@ -9,6 +9,7 @@
         /// Convert C# object data into a byte array.
         /// </summary>
         public byte[] Serialize(object serializableObject);
+
         /// <summary>
         /// Fill C# object with data in byte array format.
         /// </summary>
