@@ -17,7 +17,7 @@ namespace SimpleConfigs.Utilities
                 return configNameAttribute.ConfigName;
             }
 
-            return $"{configObjectType.Name}.json";
+            return $"{configObjectType.Name}.cfg";
         }
 
         public static string GetFullPathForConfigFile(object configObject)
