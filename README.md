@@ -9,22 +9,23 @@ Releases only on: `.Net8`, but you can rebuild project on target framework what 
 
 ### Assemblies
 
-<a name="SimpleConfigs"/> 
+<a name="SimpleConfigs"/>
 
 **SimpleConfigs** - The core library provides all necessary functional for configs creating, saving, loading etc. Don't have any external dependencies. But it not contains implementation for [`ISerializationManager`](#ISerializationManager) interface.
 
-<a name="SimpleConfigs.JSON"/> 
+<a name="SimpleConfigs.JSON"/>
 
 **SimpleConfigs.JSON** - Contain implementation for [`ISerializationManager`](#ISerializationManager) interface, which give ability to serialize config in JSON format.
-Depends on: `SimpleConfigs`, `Newtonsoft.JSON`.
+Depends on: `SimpleConfigs`, `Newtonsoft.JSON` .
 
 <a name="SimpleConfigs.Test"/>
 
-**SimpleConfigs.Test** - Contain tests for all other assemblies and have using examples. 
+**SimpleConfigs.Test** - Contain tests for all other assemblies and have using examples.
 Depends on all other assemblies in project.
 
 ### Using
-For example, you have config class like this: <br>
+For example, you have config class like this:
+
 ```C#
 public class MainConfig
 {
