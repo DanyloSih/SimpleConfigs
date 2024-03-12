@@ -1,6 +1,6 @@
 ﻿using SimpleConfigs.Core;
-using SimpleConfigs.Core.SerializationManagers;
 using SimpleConfigs.Test.Configs;
+using SimpleConfigs.JSON.SerializationManagers;
 
 internal class Program
 {
@@ -9,6 +9,7 @@ internal class Program
     private static async Task Main(string[] args)
     {
         s_configsService = new ConfigsService(
+            new JsonSerializationManager(),
             typeof(TestConfigWithoutAnyAttributesAndInterfaces),
             typeof(TestConfigWithRelativePathAttribute),
             typeof(TestConfigWithRelativePathAndNameAttribute),

@@ -1,5 +1,4 @@
-﻿using SimpleConfigs.Core.SerializationManagers;
-using SimpleConfigs.Utilities;
+﻿using SimpleConfigs.Utilities;
 
 namespace SimpleConfigs.Core
 {
@@ -30,17 +29,6 @@ namespace SimpleConfigs.Core
             }
 
             _serializationManager = serializationManager;
-        }
-
-        /// <summary>
-        /// </summary>
-        /// <param name="registeringConfigTypes">
-        /// Unique types of config objects. <br/>
-        /// Registering type should have at least one constructor without parameters.
-        /// </param>
-        public ConfigsService(params Type[] registeringConfigTypes)
-            : this(new JsonSerializationManager(), registeringConfigTypes)
-        {
         }
         #endregion
 

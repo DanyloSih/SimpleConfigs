@@ -1,8 +1,8 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
-using SimpleConfigs.Extensions.NewtonsoftJSON;
+using SimpleConfigs.Core;
 
-namespace SimpleConfigs.Core.SerializationManagers
+namespace SimpleConfigs.JSON.SerializationManagers
 {
     public class JsonSerializationManager : ISerializationManager
     {

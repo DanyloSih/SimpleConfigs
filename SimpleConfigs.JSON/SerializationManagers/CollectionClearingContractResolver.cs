@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using Newtonsoft.Json.Serialization;
 
-namespace SimpleConfigs.JSON
+namespace SimpleConfigs.JSON.SerializationManagers
 {
     public class CollectionClearingContractResolver : DefaultContractResolver
     {
