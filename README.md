@@ -5,16 +5,22 @@ Hello, my - [linkedin](https://www.linkedin.com/in/danylo-sihaiev-33118a21b/)
 
 ### Target framework
 
-&nbsp;&nbsp;&nbsp;&nbsp;  Releases only on: `.Net8`, but you can rebuild project on target framework what you want.
+Releases only on: `.Net8`, but you can rebuild project on target framework what you want.
 
 ### Assemblies
 
-<a name="SimpleConfigs"/>&nbsp;&nbsp;&nbsp;&nbsp;  **SimpleConfigs** - The core library provides all necessary functional for configs creating, saving, loading etc. Don't have any external dependencies. But it not contains implementation for [`ISerializationManager`](#ISerializationManager) interface.
+<a name="SimpleConfigs"/> 
 
-<a name="SimpleConfigs.JSON"/>&nbsp;&nbsp;&nbsp;&nbsp;  **SimpleConfigs.JSON** - Contain implementation for [`ISerializationManager`](#ISerializationManager) interface, which give ability to serialize config in JSON format.
+**SimpleConfigs** - The core library provides all necessary functional for configs creating, saving, loading etc. Don't have any external dependencies. But it not contains implementation for [`ISerializationManager`](#ISerializationManager) interface.
+
+<a name="SimpleConfigs.JSON"/> 
+
+**SimpleConfigs.JSON** - Contain implementation for [`ISerializationManager`](#ISerializationManager) interface, which give ability to serialize config in JSON format.
 Depends on: `SimpleConfigs`, `Newtonsoft.JSON`.
 
-<a name="SimpleConfigs.Test"/>&nbsp;&nbsp;&nbsp;&nbsp;  **SimpleConfigs.Test** - Contain tests for all other assemblies and have using examples. 
+<a name="SimpleConfigs.Test"/>
+
+**SimpleConfigs.Test** - Contain tests for all other assemblies and have using examples. 
 Depends on all other assemblies in project.
 
 ### Using
@@ -26,8 +32,9 @@ public class MainConfig
 	public int SomeValue = 456;
 }
 ```
-To save this config as file, or populate this object with data from file, you should use `ConfigsService` class. It takes [`ISerializationManager`](#ISerializationManager) as the first parameter in the constructor and array of config types as second. You can implement [`ISerializationManager`](#ISerializationManager) interface by yourself or use an existing assembly, for example we take [`SimpleConfigs.JSON`](#SimpleConfigs.JSON) assembly and his [`ISerializationManager`](#ISerializationManager) implementation `JsonSerializationManager` <br>
-Configs registration example: <br>
+To save this config as file, or populate this object with data from file, you should use `ConfigsService` class. It takes [`ISerializationManager`](#ISerializationManager) as the first parameter in the constructor and array of config types as second. You can implement [`ISerializationManager`](#ISerializationManager) interface by yourself or use an existing assembly, for example we take [`SimpleConfigs.JSON`](#SimpleConfigs.JSON) assembly and his [`ISerializationManager`](#ISerializationManager) implementation `JsonSerializationManager`
+
+Configs registration example:
 
 ```C#
 // your function....
@@ -79,4 +86,6 @@ public class MainConfig
 ```
 
 ### Common information
-<a name="ISerializationManager"/> &nbsp;&nbsp;&nbsp;&nbsp; **`ISerializationManager`** - This interface is responsible for converting config object data into a byte array that's will be written to a file. The implementation of this interface is not included in the main [`SimpleConfigs`](#SimpleConfigs) assembly to avoid creating unnecessary dependencies. You can implement this interface by yourself or use an existing assembly, for example: [`SimpleConfigs.JSON`](#SimpleConfigs.JSON).
+<a name="ISerializationManager"/>
+
+**`ISerializationManager`** - This interface is responsible for converting config object data into a byte array that's will be written to a file. The implementation of this interface is not included in the main [`SimpleConfigs`](#SimpleConfigs) assembly to avoid creating unnecessary dependencies. You can implement this interface by yourself or use an existing assembly, for example: [`SimpleConfigs.JSON`](#SimpleConfigs.JSON).
