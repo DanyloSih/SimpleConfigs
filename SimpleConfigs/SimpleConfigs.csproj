@@ -4,6 +4,30 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Library for easy config files managing</Title>
+    <Version>1.0.0</Version>
+    <Authors>DanPie</Authors>
+    <Company>DanPie</Company>
+    <Description>Author linkedin: https://www.linkedin.com/in/danylo-sihaiev-33118a21b/
+Documentation: https://github.com/DanyloSih/SimpleConfigs</Description>
+    <PackageProjectUrl>https://github.com/DanyloSih/SimpleConfigs</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/DanyloSih/SimpleConfigs</RepositoryUrl>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>
