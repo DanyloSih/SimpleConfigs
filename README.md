@@ -16,7 +16,7 @@ Releases only on: `.Net8`, but you can rebuild project on target framework what 
 <a name="SimpleConfigs.JSON"/>
 
 **SimpleConfigs.JSON** - Contain implementation for [`ISerializationManager`](#ISerializationManager) interface, which give ability to serialize config in JSON format.
-Depends on: `SimpleConfigs`, `Newtonsoft.JSON` .
+Depends on: `SimpleConfigs`, `Newtonsoft.JSON`.
 
 <a name="SimpleConfigs.Test"/>
 
