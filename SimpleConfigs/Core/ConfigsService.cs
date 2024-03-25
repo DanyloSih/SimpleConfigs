@@ -2,6 +2,22 @@
 
 namespace SimpleConfigs.Core
 {
+    public class PathOverrideSettings
+    {
+        private string? _directoryRelativePath;
+        private string? _fileName;
+
+        /// <summary>
+        /// File path relative to current assembly: "AssemblyPath" + "<paramref name="relativeFilePath"/>" <br/>
+        /// Example: Proxies/Google/avaliable.json
+        /// </summary>
+        public void SetRelativeFilePath(string relativeFilePath)
+        {
+            _directoryRelativePath = Path.GetDirectoryName(relativeFilePath);
+            _fileName = Path.GetFileName(relativeFilePath);
+        }
+    }
+
     /// <summary>
     /// This object manage config objects life.
     /// </summary>
