@@ -66,10 +66,10 @@ namespace SimpleConfigs.Core
         /// <summary>
         /// Creates non-existent config files with default values and loads data from existing config files.
         /// </summary>
-        public async Task InitializeConfigsAsync(bool checkDataCorrectness = true)
+        public async Task InitializeConfigsAsync(bool checkDataCorrectness = true, bool inParallel = true)
         {
-            await CreateConfigFilesAsync();
-            await LoadConfigsFromFilesAsync(checkDataCorrectness);
+            await CreateConfigFilesAsync(inParallel);
+            await LoadConfigsFromFilesAsync(checkDataCorrectness, inParallel);
         }
 
         /// <summary>
@@ -237,12 +237,22 @@ namespace SimpleConfigs.Core
         /// Invoke <see cref="IDataCorrectnessChecker.CheckDataCorrectnessAsync"/> method in all config objects <br/>
         /// with <see cref="IDataCorrectnessChecker"/> interface.
         /// </summary>
-        public async Task CheckConfigsDataCorrectnessAsync()
+        public async Task CheckConfigsDataCorrectnessAsync(bool inParallel = true)
         {
-            foreach (var configObject in _registeredConfigs)
+            if (inParallel)
             {
-                await CheckDataCorrectnessAsync(configObject.Value, true);
+                await Parallel.ForEachAsync(
+                    _registeredConfigs,
+                    async (x, token) => await CheckDataCorrectnessAsync(x.Value, true));
             }
+            else
+            {
+                foreach (var configObject in _registeredConfigs)
+                {
+                    await CheckDataCorrectnessAsync(configObject.Value, true);
+                }
+            }
+
         }
 
         /// <summary>
@@ -286,11 +296,20 @@ namespace SimpleConfigs.Core
         /// <summary>
         /// Create configuration files and specified directories along his paths, if they do not already exist.
         /// </summary>
-        public async Task CreateConfigFilesAsync()
+        public async Task CreateConfigFilesAsync(bool inParallel = true)
         {
-            foreach (var configObject in _registeredConfigs)
+            if (inParallel)
             {
-                await CreateConfigFileAsync(configObject.Value);
+                await Parallel.ForEachAsync(
+                    _registeredConfigs,
+                    async (x, token) => await CreateConfigFileAsync(x.Value));
+            }
+            else
+            {
+                foreach (var configObject in _registeredConfigs)
+                {
+                    await CreateConfigFileAsync(configObject.Value);
+                }
             }
         }
 
@@ -339,11 +358,20 @@ namespace SimpleConfigs.Core
         /// <summary>
         /// Delete config files for all <see cref="RegisteredConfigs"/>
         /// </summary>
-        public async Task DeleteAllConfigFilesAsync()
+        public async Task DeleteAllConfigFilesAsync(bool inParallel = true)
         {
-            foreach (var config in _registeredConfigs)
+            if (inParallel)
             {
-                await DeleteConfigFileAsync(config.Key);
+                await Parallel.ForEachAsync(
+                    _registeredConfigs,
+                    async (x, token) => await DeleteConfigFileAsync(x.Key));
+            }
+            else
+            {
+                foreach (var config in _registeredConfigs)
+                {
+                    await DeleteConfigFileAsync(config.Key);
+                }
             }
         }
 
@@ -388,11 +416,20 @@ namespace SimpleConfigs.Core
         /// Creates config files with serialization data if they do not already exist, <br/> 
         /// or overwriting already exiting files.
         /// </summary>
-        public async Task SaveConfigsToFilesAsync(bool checkDataCorrectness = true)
+        public async Task SaveConfigsToFilesAsync(bool checkDataCorrectness = true, bool inParallel = true)
         {
-            foreach (var configObject in _registeredConfigs)
+            if (inParallel)
             {
-                await SaveConfigToFileAsync(configObject.Value, checkDataCorrectness);
+                await Parallel.ForEachAsync(
+                    _registeredConfigs,
+                    async (x, token) => await SaveConfigToFileAsync(x.Value, checkDataCorrectness));
+            }
+            else
+            {
+                foreach (var configObject in _registeredConfigs)
+                {
+                    await SaveConfigToFileAsync(configObject.Value, checkDataCorrectness);
+                }
             }
         }
 
@@ -454,11 +491,20 @@ namespace SimpleConfigs.Core
         /// Load deserialized data from config files,
         /// if they exist, if not - throw <see cref="InvalidOperationException"/>.
         /// </summary>
-        public async Task LoadConfigsFromFilesAsync(bool checkDataCorrectness = true)
+        public async Task LoadConfigsFromFilesAsync(bool checkDataCorrectness = true, bool inParallel = true)
         {
-            foreach (var configObject in _registeredConfigs)
+            if (inParallel)
             {
-                await LoadConfigFromFileAsync(configObject.Value, checkDataCorrectness);
+                await Parallel.ForEachAsync(
+                    _registeredConfigs,
+                    async (x, token) => await LoadConfigFromFileAsync(x.Value, checkDataCorrectness));
+            }
+            else
+            {
+                foreach (var configObject in _registeredConfigs)
+                {
+                    await LoadConfigFromFileAsync(configObject.Value, checkDataCorrectness);
+                }
             }
         }
 
