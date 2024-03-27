@@ -10,6 +10,7 @@ internal class Program
     {
         s_configsService = new ConfigsService(
             new JsonSerializationManager(),
+            new LocalFileSystem(),
             typeof(TestConfigWithoutAnyAttributesAndInterfaces),
             typeof(TestConfigWithRelativePathAttribute),
             typeof(TestConfigWithRelativePathAndNameAttribute),
@@ -52,10 +53,13 @@ internal class Program
 
         var configsService2 = new ConfigsService(
             new JsonSerializationManager(),
-            (typeof(TestConfigWithoutAnyAttributesAndInterfaces), null),
-            (typeof(TestConfigWithRelativePathAttribute), new PathSettings(null, "nameOverride 1.txt")),
+            new LocalFileSystem(),
+            (typeof(TestConfigWithoutAnyAttributesAndInterfaces), new PathSettings(null, "nameOverride 1.txt")),
+            (typeof(TestConfigWithRelativePathAttribute), new PathSettings(null, null)),
             (typeof(TestConfigWithRelativePathAndNameAttribute), new PathSettings("PathOverride 1", null)),
             (typeof(TestConfigWithAttributesAndInterfaces), new PathSettings("PathOverride 2", "nameOverride 2.cfg")));
+
+        configsService2.SetPathOverrideSettings<TestConfigWithoutAnyAttributesAndInterfaces>(new PathSettings(null, "overridedName.json"));
 
         configsService2.CommonRelativeDirectoryPath = Path.Combine("ConfigsService", "2");
         await configsService2.InitializeConfigsAsync();

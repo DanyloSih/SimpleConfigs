@@ -8,9 +8,12 @@ namespace SimpleConfigs.Utilities
     {
         public static string GetConfigFileName(Type configObjectType, PathSettings? pathOverriteSettings = null)
         {
-            if (pathOverriteSettings != null && !string.IsNullOrEmpty(pathOverriteSettings.FileName))
+            if (pathOverriteSettings != null)
             {
-                return pathOverriteSettings.FileName;
+                var name = string.IsNullOrEmpty(pathOverriteSettings.FileName) 
+                    ? GetDefaultConfigName(configObjectType) : pathOverriteSettings.FileName;
+
+                return name;
             }
 
             ConfigNameAttribute? configNameAttribute = configObjectType.GetCustomAttribute<ConfigNameAttribute>();
@@ -20,6 +23,11 @@ namespace SimpleConfigs.Utilities
                 return configNameAttribute.ConfigName;
             }
 
+            return GetDefaultConfigName(configObjectType);
+        }
+
+        private static string GetDefaultConfigName(Type configObjectType)
+        {
             return $"{configObjectType.Name}.cfg";
         }
 
@@ -27,9 +35,12 @@ namespace SimpleConfigs.Utilities
         {
             string configFileName = GetConfigFileName(configObjectType, pathOverriteSettings);
 
-            if (pathOverriteSettings != null && !string.IsNullOrEmpty(pathOverriteSettings.RelativeDirectoryPath))
+            if (pathOverriteSettings != null)
             {
-                return Path.Combine(pathOverriteSettings.RelativeDirectoryPath, configFileName);
+                var path = string.IsNullOrEmpty(pathOverriteSettings.RelativeDirectoryPath) 
+                    ? string.Empty : pathOverriteSettings.RelativeDirectoryPath;
+
+                return Path.Combine(path, configFileName);
             }
 
             RelativePathAttribute? relativePathAttribute = configObjectType.GetCustomAttribute<RelativePathAttribute>();

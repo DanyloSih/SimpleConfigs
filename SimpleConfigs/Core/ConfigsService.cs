@@ -2,20 +2,6 @@
 
 namespace SimpleConfigs.Core
 {
-    public interface IFileSystem
-    {
-        public bool Exist(string filePath);
-        public void DeleteAsync(string filePath);
-        public IFileStream Create(string filePath);
-        public IFileStream OpenWrite(string filePath);
-        public Task<byte[]> ReadAllBytesAsync(string filePath);
-    }
-
-    public interface IFileStream : IDisposable
-    {
-        public Task WriteAsync(byte[] bytes, int offset, int count);
-    }
-
     /// <summary>
     /// This object manage config objects life.
     /// </summary>
@@ -24,6 +10,7 @@ namespace SimpleConfigs.Core
         private Dictionary<Type, object> _registeredConfigs = new();
         private Dictionary<Type, PathSettings?> _pathOverrideSettings = new();
         private ISerializationManager _serializationManager;
+        private IFileSystem _fileSystem;
         private PathSettings _commonPathSettings = new();
 
         /// <summary>
@@ -44,7 +31,10 @@ namespace SimpleConfigs.Core
         /// Unique types of config objects. <br/>
         /// Registering type should have at least one constructor without parameters.
         /// </param>
-        public ConfigsService(ISerializationManager serializationManager, params Type[] registeringConfigTypes)
+        public ConfigsService(
+            ISerializationManager serializationManager,
+            IFileSystem fileSystem,
+            params Type[] registeringConfigTypes)
         {
             foreach (var registeringType in registeringConfigTypes)
             {
@@ -52,9 +42,13 @@ namespace SimpleConfigs.Core
             }
 
             _serializationManager = serializationManager;
+            _fileSystem = fileSystem;
         }
 
-        public ConfigsService(ISerializationManager serializationManager, params (Type, PathSettings?)[] registeringConfigTypes)
+        public ConfigsService(
+            ISerializationManager serializationManager,
+            IFileSystem fileSystem,
+            params (Type, PathSettings?)[] registeringConfigTypes)
         {
             foreach (var registeringType in registeringConfigTypes)
             {
@@ -62,6 +56,7 @@ namespace SimpleConfigs.Core
             }
 
             _serializationManager = serializationManager;
+            _fileSystem = fileSystem;
         }
 
         #endregion Constructors
@@ -114,7 +109,7 @@ namespace SimpleConfigs.Core
             if (_registeredConfigs.ContainsKey(configType))
             {
                 throw new ArgumentException(
-                    $"Registreing types should be unique! \n" +
+                    $"Registering types should be unique! \n" +
                     $"\"{configType.Name}\" type already registered!");
             }
             _registeredConfigs.Add(configType, Activator.CreateInstance(configType)!);
@@ -325,11 +320,11 @@ namespace SimpleConfigs.Core
         private async Task CreateConfigFileAsync(object configObject)
         {
             string configFilePath = GetFilePathForConfig(configObject.GetType());
-            PathUtilities.CreateDirectoriesAlongPath(configFilePath);
+            await _fileSystem.CreateDirectoriesAlongPathAsync(configFilePath);
 
-            if (!File.Exists(configFilePath))
+            if (!_fileSystem.IsFileExist(configFilePath))
             {
-                using (FileStream stream = File.Create(configFilePath))
+                using (IFileStream stream = _fileSystem.Create(configFilePath))
                 {
                     byte[] serializationData = await SerializeConfigObjectAsync(configObject);
                     await stream.WriteAsync(serializationData, 0, serializationData.Length);
@@ -379,9 +374,9 @@ namespace SimpleConfigs.Core
         {
             string configFilePath = GetFilePathForConfig(configType);
 
-            if (File.Exists(configFilePath))
+            if (_fileSystem.IsFileExist(configFilePath))
             {
-                await Task.Run(() => File.Delete(configFilePath));
+                await _fileSystem.DeleteAsync(configFilePath);
             }
         }
 
@@ -434,17 +429,17 @@ namespace SimpleConfigs.Core
 
             byte[] serializationData = await SerializeConfigObjectAsync(configObject);
 
-            if (File.Exists(configFilePath))
+            if (_fileSystem.IsFileExist(configFilePath))
             {
-                using (FileStream stream = File.OpenWrite(configFilePath))
+                using (IFileStream stream = _fileSystem.OpenWrite(configFilePath))
                 {
                     await stream.WriteAsync(serializationData, 0, serializationData.Length);
                 }
             }
             else
             {
-                PathUtilities.CreateDirectoriesAlongPath(configFilePath);
-                using (FileStream stream = File.Create(configFilePath))
+                await _fileSystem.CreateDirectoriesAlongPathAsync(configFilePath);
+                using (IFileStream stream = _fileSystem.Create(configFilePath))
                 {
                     await stream.WriteAsync(serializationData, 0, serializationData.Length);
                 }
@@ -495,9 +490,9 @@ namespace SimpleConfigs.Core
         {
             string configFilePath = GetFilePathForConfig(configObject.GetType());
 
-            if (File.Exists(configFilePath))
+            if (_fileSystem.IsFileExist(configFilePath))
             {
-                var data = await File.ReadAllBytesAsync(configFilePath);
+                var data = await _fileSystem.ReadAllBytesAsync(configFilePath);
                 await DeserializeConfigObjectAsync(configObject, data);
             }
             else
@@ -564,7 +559,7 @@ namespace SimpleConfigs.Core
 
         private string GetFilePathForConfig(Type configType)
         {
-            string appDirectory = PathUtilities.GetApplicationDirectory();
+            string appDirectory = _fileSystem.GetApplicationDirectory();
             string commonDictionary = CommonRelativeDirectoryPath == null ? string.Empty : CommonRelativeDirectoryPath;
             string configPath = ConfigInfoUtilities.GetRelativePathForConfigFile(
                 configType, _pathOverrideSettings[configType]);
