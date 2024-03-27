@@ -9,7 +9,7 @@
     <Version>1.1.1</Version>
     <Authors>DanPie</Authors>
     <Company>DanPie</Company>
-    <Description>Author linkedin: https://www.linkedin.com/in/danylo-sihaiev-33118a21b/
+    <Description>Package for easy data files (.json, .cfg, etc.) management.
 Documentation: https://github.com/DanyloSih/SimpleConfigs</Description>
     <PackageProjectUrl>https://github.com/DanyloSih/SimpleConfigs</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
