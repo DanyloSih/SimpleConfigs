@@ -2,20 +2,18 @@
 
 namespace SimpleConfigs.Core
 {
-    public class PathOverrideSettings
+    public interface IFileSystem
     {
-        private string? _directoryRelativePath;
-        private string? _fileName;
+        public bool Exist(string filePath);
+        public void DeleteAsync(string filePath);
+        public IFileStream Create(string filePath);
+        public IFileStream OpenWrite(string filePath);
+        public Task<byte[]> ReadAllBytesAsync(string filePath);
+    }
 
-        /// <summary>
-        /// File path relative to current assembly: "AssemblyPath" + "<paramref name="relativeFilePath"/>" <br/>
-        /// Example: Proxies/Google/avaliable.json
-        /// </summary>
-        public void SetRelativeFilePath(string relativeFilePath)
-        {
-            _directoryRelativePath = Path.GetDirectoryName(relativeFilePath);
-            _fileName = Path.GetFileName(relativeFilePath);
-        }
+    public interface IFileStream : IDisposable
+    {
+        public Task WriteAsync(byte[] bytes, int offset, int count);
     }
 
     /// <summary>
@@ -23,8 +21,20 @@ namespace SimpleConfigs.Core
     /// </summary>
     public class ConfigsService
     {
-        private Dictionary<Type, object> _registeredConfigs = new Dictionary<Type, object>();
+        private Dictionary<Type, object> _registeredConfigs = new();
+        private Dictionary<Type, PathSettings?> _pathOverrideSettings = new();
         private ISerializationManager _serializationManager;
+        private PathSettings _commonPathSettings = new();
+
+        /// <summary>
+        /// if not null, all configs will be use path like this: <br/> 
+        /// "CommonRelativeDirectoryPath" + "ConfigFileRelativePath" 
+        /// </summary>
+        public string? CommonRelativeDirectoryPath 
+        { 
+            get => _commonPathSettings.RelativeDirectoryPath; 
+            set => _commonPathSettings.SetRelativeDirectoryPath(value); 
+        }
 
         #region Constructors
 
@@ -38,11 +48,17 @@ namespace SimpleConfigs.Core
         {
             foreach (var registeringType in registeringConfigTypes)
             {
-                if (_registeredConfigs.ContainsKey(registeringType))
-                {
-                    throw new ArgumentException("Registreing types should be unique!");
-                }
-                _registeredConfigs.Add(registeringType, Activator.CreateInstance(registeringType)!);
+                RegisterConfigType(registeringType, null);
+            }
+
+            _serializationManager = serializationManager;
+        }
+
+        public ConfigsService(ISerializationManager serializationManager, params (Type, PathSettings?)[] registeringConfigTypes)
+        {
+            foreach (var registeringType in registeringConfigTypes)
+            {
+                RegisterConfigType(registeringType.Item1, registeringType.Item2);
             }
 
             _serializationManager = serializationManager;
@@ -55,10 +71,10 @@ namespace SimpleConfigs.Core
         /// <summary>
         /// Creates non-existent config files with default values and loads data from existing config files.
         /// </summary>
-        public void InitializeAllConfigs(bool checkDataCorrectness = true)
+        public async Task InitializeConfigsAsync(bool checkDataCorrectness = true)
         {
-            CreateConfigFiles();
-            LoadConfigsFromFiles(checkDataCorrectness);
+            await CreateConfigFilesAsync();
+            await LoadConfigsFromFilesAsync(checkDataCorrectness);
         }
 
         /// <summary>
@@ -66,25 +82,116 @@ namespace SimpleConfigs.Core
         /// loads data from existing config files. <br/> <br/>
         /// <inheritdoc cref="CheckIsConfigTypeExist(Type)"/>
         /// </summary>
-        public void InitializeConfig(Type configType)
+        public async Task InitializeConfigAsync(Type configType)
         {
             CheckIsConfigTypeExist(configType);
-            CreateConfigFile(configType);
-            LoadConfigFromFile(configType);
+            await CreateConfigFileAsync(configType);
+            await LoadConfigFromFileAsync(configType);
         }
 
         /// <summary>
         /// Creates non-existent config files with default values and loads data from existing config files. <br/> <br/>
         /// <inheritdoc cref="CheckIsConfigTypeExist{T}()"/>
         /// </summary>
-        public void InitializeConfig<T>()
+        public async Task InitializeConfigAsync<T>()
         {
             CheckIsConfigTypeExist<T>();
-            CreateConfigFile<T>();
-            LoadConfigFromFile<T>();
+            await CreateConfigFileAsync<T>();
+            await LoadConfigFromFileAsync<T>();
         }
 
         #endregion Initialization
+
+        #region Registration
+
+        /// <summary>
+        /// Create instance of <paramref name="configType"/> and create with it necessary data associations. <br/>
+        /// After registration you be able to create, load, save config files for  <paramref name="configType"/>. <br/>
+        /// Throw <see cref="ArgumentException"/> if <paramref name="configType"/> already registered.
+        /// </summary>
+        public void RegisterConfigType(Type configType, PathSettings? pathOverrideSettigns = null)
+        {
+            if (_registeredConfigs.ContainsKey(configType))
+            {
+                throw new ArgumentException(
+                    $"Registreing types should be unique! \n" +
+                    $"\"{configType.Name}\" type already registered!");
+            }
+            _registeredConfigs.Add(configType, Activator.CreateInstance(configType)!);
+            _pathOverrideSettings.Add(configType, pathOverrideSettigns);
+        }
+
+        /// <summary>
+        /// After unregistering all data associations for <paramref name="configType"/> will be removed. <br/>
+        /// You no longer be able to create, load, save config files for <paramref name="configType"/>. <br/>
+        /// <inheritdoc cref="CheckIsConfigTypeExist"/>
+        /// </summary>
+        public void UnregisterConfigType(Type configType)
+        {
+            CheckIsConfigTypeExist(configType);
+            _registeredConfigs.Remove(configType);
+            _pathOverrideSettings.Remove(configType);
+        }
+
+        #endregion
+
+        #region PathOverrideSettings
+
+        /// <summary>
+        /// <inheritdoc cref="CheckIsConfigTypeExist{T}()"/>
+        /// </summary>
+        public bool IsPathOverrideSettingsNull<T>()
+        {
+            CheckIsConfigTypeExist<T>();
+            return _pathOverrideSettings[typeof(T)] == null;
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="CheckIsConfigTypeExist"/>
+        /// </summary>
+        public bool IsPathOverrideSettingsNull(Type configType)
+        {
+            CheckIsConfigTypeExist(configType);
+            return _pathOverrideSettings[configType] == null;
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="CheckIsConfigTypeExist{T}()"/>
+        /// </summary>
+        public void SetPathOverrideSettings<T>(PathSettings pathOverrideSettings)
+        {
+            CheckIsConfigTypeExist<T>();
+            _pathOverrideSettings[typeof(T)] = pathOverrideSettings;
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="CheckIsConfigTypeExist"/>
+        /// </summary>
+        public void SetPathOverrideSettings(Type configType, PathSettings pathOverrideSettings)
+        {
+            CheckIsConfigTypeExist(configType);
+            _pathOverrideSettings[configType] = pathOverrideSettings;
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="CheckIsConfigTypeExist{T}()"/>
+        /// </summary>
+        public PathSettings? GetPathOverrideSettings<T>()
+        {
+            CheckIsConfigTypeExist<T>();
+            return _pathOverrideSettings[typeof(T)];
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="CheckIsConfigTypeExist"/>
+        /// </summary>
+        public PathSettings? GetPathOverrideSettings(Type configType)
+        {
+            CheckIsConfigTypeExist(configType);
+            return _pathOverrideSettings[configType];
+        }
+
+        #endregion
 
         #region RegisteredConfigsInfo
 
@@ -106,12 +213,13 @@ namespace SimpleConfigs.Core
         }
 
         /// <summary>
-        /// Returns all <see cref="_registeredConfigs"/> (Type, Object)
+        /// Returns all registered configs via constructor or 
+        /// <see cref="RegisterConfigType(Type, PathSettings?)"/> method.
         /// </summary>
-        public IEnumerable<KeyValuePair<Type, object>> GetRegisteredConfigs() => _registeredConfigs;
+        public IReadOnlyDictionary<Type, object> RegisteredConfigs => _registeredConfigs;
 
         /// <summary>
-        /// Return true if <paramref name="configType"/> contained in <see cref="_registeredConfigs"/>
+        /// Return true if <paramref name="configType"/> contained in <see cref="RegisteredConfigs"/>
         /// </summary>
         public bool IsConfigExist(Type configType)
         {
@@ -119,7 +227,7 @@ namespace SimpleConfigs.Core
         }
 
         /// <summary>
-        /// Return true if type in <typeparamref name="T"/> contained in <see cref="_registeredConfigs"/>
+        /// Return true if type in <typeparamref name="T"/> contained in <see cref="RegisteredConfigs"/>
         /// </summary>
         public bool IsConfigExist<T>()
         {
@@ -131,48 +239,48 @@ namespace SimpleConfigs.Core
         #region ConfigDataCorrectness
 
         /// <summary>
-        /// Invoke <see cref="IDataCorrectnessChecker.CheckDataCorrectness"/> method in all config objects <br/>
+        /// Invoke <see cref="IDataCorrectnessChecker.CheckDataCorrectnessAsync"/> method in all config objects <br/>
         /// with <see cref="IDataCorrectnessChecker"/> interface.
         /// </summary>
-        public void CheckConfigsDataCorrectness()
+        public async Task CheckConfigsDataCorrectnessAsync()
         {
             foreach (var configObject in _registeredConfigs)
             {
-                CheckDataCorrectness(configObject.Value, true);
+                await CheckDataCorrectnessAsync(configObject.Value, true);
             }
         }
 
         /// <summary>
-        /// <inheritdoc cref="CheckDataCorrectness(object, bool)"/> <br/> <br/>
+        /// <inheritdoc cref="CheckDataCorrectnessAsync(object, bool)"/> <br/> <br/>
         /// <inheritdoc cref="CheckIsConfigTypeExist(Type)"/>
         /// </summary>
-        public void CheckDataCorrectness(Type configType)
+        public async Task CheckDataCorrectnessAsync(Type configType)
         {
             CheckIsConfigTypeExist(configType);
-            CheckDataCorrectness(_registeredConfigs[configType], true);
+            await CheckDataCorrectnessAsync(_registeredConfigs[configType], true);
         }
 
         /// <summary>
-        /// <inheritdoc cref="CheckDataCorrectness(object, bool)"/> <br/> <br/>
+        /// <inheritdoc cref="CheckDataCorrectnessAsync(object, bool)"/> <br/> <br/>
         /// <inheritdoc cref="CheckIsConfigTypeExist{T}()"/>
         /// </summary>
-        public void CheckDataCorrectness<T>()
+        public async Task CheckDataCorrectnessAsync<T>()
         {
             CheckIsConfigTypeExist(typeof(T));
-            CheckDataCorrectness(_registeredConfigs[typeof(T)], true);
+            await CheckDataCorrectnessAsync(_registeredConfigs[typeof(T)], true);
         }
 
         /// <summary>
-        /// Invoke <see cref="IDataCorrectnessChecker.CheckDataCorrectness"/> method <br/>
+        /// Invoke <see cref="IDataCorrectnessChecker.CheckDataCorrectnessAsync"/> method <br/>
         /// if config implement <see cref="IDataCorrectnessChecker"/> interface.
         /// </summary>
-        private void CheckDataCorrectness(object configObject, bool checkDataCorrectness)
+        private async Task CheckDataCorrectnessAsync(object configObject, bool checkDataCorrectness)
         {
             if (checkDataCorrectness
              && typeof(IDataCorrectnessChecker).IsAssignableFrom(configObject.GetType()))
             {
                 IDataCorrectnessChecker dataCorrectnessChecker = (IDataCorrectnessChecker)configObject;
-                dataCorrectnessChecker.CheckDataCorrectness();
+                await dataCorrectnessChecker.CheckDataCorrectnessAsync();
             }
         }
 
@@ -183,106 +291,154 @@ namespace SimpleConfigs.Core
         /// <summary>
         /// Create configuration files and specified directories along his paths, if they do not already exist.
         /// </summary>
-        public void CreateConfigFiles()
+        public async Task CreateConfigFilesAsync()
         {
             foreach (var configObject in _registeredConfigs)
             {
-                CreateConfigFile(configObject.Value);
+                await CreateConfigFileAsync(configObject.Value);
             }
         }
 
         /// <summary>
-        /// <inheritdoc cref="CreateConfigFile(object)"/> <br/> <br/>
+        /// <inheritdoc cref="CreateConfigFileAsync(object)"/> <br/> <br/>
         /// <inheritdoc cref="CheckIsConfigTypeExist{T}()"/>
         /// </summary>
-        public void CreateConfigFile<T>()
+        public async Task CreateConfigFileAsync<T>()
         {
             CheckIsConfigTypeExist<T>();
-            CreateConfigFile(_registeredConfigs[typeof(T)]);
+            await CreateConfigFileAsync(_registeredConfigs[typeof(T)]);
         }
 
         /// <summary>
-        /// <inheritdoc cref="CreateConfigFile(object)"/> <br/> <br/>
+        /// <inheritdoc cref="CreateConfigFileAsync(object)"/> <br/> <br/>
         /// <inheritdoc cref="CheckIsConfigTypeExist(Type)"/>
         /// </summary>
-        public void CreateConfigFile(Type configType)
+        public async Task CreateConfigFileAsync(Type configType)
         {
             CheckIsConfigTypeExist(configType);
-            CreateConfigFile(_registeredConfigs[configType]);
+            await CreateConfigFileAsync(_registeredConfigs[configType]);
         }
 
         /// <summary>
         /// Create configuration file and specified directories along his path, if they do not already exist.
         /// </summary>
-        private void CreateConfigFile(object configObject)
+        private async Task CreateConfigFileAsync(object configObject)
         {
-            string configFilePath = ConfigInfoUtilities.GetFullPathForConfigFile(configObject);
+            string configFilePath = GetFilePathForConfig(configObject.GetType());
             PathUtilities.CreateDirectoriesAlongPath(configFilePath);
 
             if (!File.Exists(configFilePath))
             {
                 using (FileStream stream = File.Create(configFilePath))
                 {
-                    byte[] serializationData = SerializeConfigObject(configObject);
-                    stream.Write(serializationData, 0, serializationData.Length);
+                    byte[] serializationData = await SerializeConfigObjectAsync(configObject);
+                    await stream.WriteAsync(serializationData, 0, serializationData.Length);
                 }
             }
         }
 
         #endregion CreateConfig
 
-        #region SaveConfig
+        #region DeleteConfig
 
         /// <summary>
-        /// Creates config files with serialization data,
-        /// if they do not already exist, or overwriting already exiting files.
+        /// Delete config files for all <see cref="RegisteredConfigs"/>
         /// </summary>
-        public void SaveConfigsToFiles(bool checkDataCorrectness = true)
+        public async Task DeleteAllConfigFilesAsync()
         {
-            foreach (var configObject in _registeredConfigs)
+            foreach (var config in _registeredConfigs)
             {
-                SaveConfigToFile(configObject.Value, checkDataCorrectness);
+                await DeleteConfigFileAsync(config.Key);
             }
         }
 
         /// <summary>
-        /// <inheritdoc cref="SaveConfigToFile(object, bool)"/> <br/> <br/>
-        /// <inheritdoc cref="CheckIsConfigTypeExist(Type)"/>
+        /// <inheritdoc cref="DeleteConfigFileBaseAsync(Type)"/> <br/>
+        /// <inheritdoc cref="CheckIsConfigTypeExist{T}()"/>
         /// </summary>
-        public void SaveConfigToFile(Type configType, bool checkDataCorrectness = true)
+        public async Task DeleteConfigFileAsync<T>()
         {
-            CheckIsConfigTypeExist(configType);
-            SaveConfigToFile(_registeredConfigs[configType], checkDataCorrectness);
+            CheckIsConfigTypeExist<T>();
+            await DeleteConfigFileBaseAsync(typeof(T));
         }
 
         /// <summary>
-        /// <inheritdoc cref="SaveConfigToFile(object, bool)"/> <br/> <br/>
+        /// <inheritdoc cref="DeleteConfigFileBaseAsync(Type)"/> <br/>
+        /// <inheritdoc cref="CheckIsConfigTypeExist(Type)"/>
+        /// </summary>
+        public async Task DeleteConfigFileAsync(Type configType)
+        {
+            CheckIsConfigTypeExist(configType);
+            await DeleteConfigFileBaseAsync(configType);
+        }
+
+        /// <summary>
+        /// Deletes a config file if it exists.
+        /// </summary>
+        private async Task DeleteConfigFileBaseAsync(Type configType)
+        {
+            string configFilePath = GetFilePathForConfig(configType);
+
+            if (File.Exists(configFilePath))
+            {
+                await Task.Run(() => File.Delete(configFilePath));
+            }
+        }
+
+        #endregion
+
+        #region SaveConfig
+
+        /// <summary>
+        /// Creates config files with serialization data if they do not already exist, <br/> 
+        /// or overwriting already exiting files.
+        /// </summary>
+        public async Task SaveConfigsToFilesAsync(bool checkDataCorrectness = true)
+        {
+            foreach (var configObject in _registeredConfigs)
+            {
+                await SaveConfigToFileAsync(configObject.Value, checkDataCorrectness);
+            }
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="SaveConfigToFileAsync(object, bool)"/> <br/> <br/>
+        /// <inheritdoc cref="CheckIsConfigTypeExist(Type)"/>
+        /// </summary>
+        public async Task SaveConfigToFileAsync(Type configType, bool checkDataCorrectness = true)
+        {
+            CheckIsConfigTypeExist(configType);
+            await SaveConfigToFileAsync(_registeredConfigs[configType], checkDataCorrectness);
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="SaveConfigToFileAsync(object, bool)"/> <br/> <br/>
         /// <inheritdoc cref="CheckIsConfigTypeExist{T}()"/>
         /// </summary>
-        public void SaveConfigToFile<T>(bool checkDataCorrectness = true)
+        public async Task SaveConfigToFileAsync<T>(bool checkDataCorrectness = true)
         {
             CheckIsConfigTypeExist<T>();
-            SaveConfigToFile(typeof(T), checkDataCorrectness);
+            await SaveConfigToFileAsync(typeof(T), checkDataCorrectness);
         }
 
         /// <summary>
         /// Creates config file with serialized data,
         /// if it do not already exist, or overwriting already existing config file. <br/> <br/>
-        /// Before serialization "<inheritdoc cref="CheckDataCorrectness(object, bool)"/>"
+        /// Before serialization "<inheritdoc cref="CheckDataCorrectnessAsync(object, bool)"/>"
         /// </summary>
-        private void SaveConfigToFile(object configObject, bool checkDataCorrectness)
+        private async Task SaveConfigToFileAsync(object configObject, bool checkDataCorrectness)
         {
-            CheckDataCorrectness(configObject, checkDataCorrectness);
+            await CheckDataCorrectnessAsync(configObject, checkDataCorrectness);
 
-            string configFilePath = ConfigInfoUtilities.GetFullPathForConfigFile(configObject);
+            string configFilePath = GetFilePathForConfig(configObject.GetType());
 
-            byte[] serializationData = SerializeConfigObject(configObject);
+            byte[] serializationData = await SerializeConfigObjectAsync(configObject);
 
             if (File.Exists(configFilePath))
             {
                 using (FileStream stream = File.OpenWrite(configFilePath))
                 {
-                    stream.Write(serializationData, 0, serializationData.Length);
+                    await stream.WriteAsync(serializationData, 0, serializationData.Length);
                 }
             }
             else
@@ -290,7 +446,7 @@ namespace SimpleConfigs.Core
                 PathUtilities.CreateDirectoriesAlongPath(configFilePath);
                 using (FileStream stream = File.Create(configFilePath))
                 {
-                    stream.Write(serializationData, 0, serializationData.Length);
+                    await stream.WriteAsync(serializationData, 0, serializationData.Length);
                 }
             }
         }
@@ -303,45 +459,46 @@ namespace SimpleConfigs.Core
         /// Load deserialized data from config files,
         /// if they exist, if not - throw <see cref="InvalidOperationException"/>.
         /// </summary>
-        public void LoadConfigsFromFiles(bool checkDataCorrectness = true)
+        public async Task LoadConfigsFromFilesAsync(bool checkDataCorrectness = true)
         {
             foreach (var configObject in _registeredConfigs)
             {
-                LoadConfigFromFile(configObject.Value, checkDataCorrectness);
+                await LoadConfigFromFileAsync(configObject.Value, checkDataCorrectness);
             }
         }
 
         /// <summary>
-        /// <inheritdoc cref="LoadConfigFromFile(object, bool)"/> <br/> <br/>
+        /// <inheritdoc cref="LoadConfigFromFileAsync(object, bool)"/> <br/> <br/>
         /// <inheritdoc cref="CheckIsConfigTypeExist(Type)"/>
         /// </summary>
-        public void LoadConfigFromFile(Type configType, bool checkDataCorrectness = true)
+        public async Task LoadConfigFromFileAsync(Type configType, bool checkDataCorrectness = true)
         {
             CheckIsConfigTypeExist(configType);
-            LoadConfigFromFile(_registeredConfigs[configType], checkDataCorrectness);
+            await LoadConfigFromFileAsync(_registeredConfigs[configType], checkDataCorrectness);
         }
 
         /// <summary>
-        /// <inheritdoc cref="LoadConfigFromFile(object, bool)"/> <br/> <br/>
+        /// <inheritdoc cref="LoadConfigFromFileAsync(object, bool)"/> <br/> <br/>
         /// <inheritdoc cref="CheckIsConfigTypeExist{T}()"/>
         /// </summary>
-        public void LoadConfigFromFile<T>(bool checkDataCorrectness = true)
+        public async Task LoadConfigFromFileAsync<T>(bool checkDataCorrectness = true)
         {
             CheckIsConfigTypeExist<T>();
-            LoadConfigFromFile(_registeredConfigs[typeof(T)], checkDataCorrectness);
+            await LoadConfigFromFileAsync(_registeredConfigs[typeof(T)], checkDataCorrectness);
         }
 
         /// <summary>
         /// Load deserealized config data from file, if file exist, if not - throw <see cref="InvalidOperationException"/>. <br/> <br/>
-        /// After deserialization "<inheritdoc cref="CheckDataCorrectness(object, bool)"/>"
+        /// After deserialization "<inheritdoc cref="CheckDataCorrectnessAsync(object, bool)"/>"
         /// </summary>
-        private void LoadConfigFromFile(object configObject, bool checkDataCorrectness)
+        private async Task LoadConfigFromFileAsync(object configObject, bool checkDataCorrectness)
         {
-            string configFilePath = ConfigInfoUtilities.GetFullPathForConfigFile(configObject);
+            string configFilePath = GetFilePathForConfig(configObject.GetType());
 
             if (File.Exists(configFilePath))
             {
-                DeserializeConfigObject(configObject, File.ReadAllBytes(configFilePath));
+                var data = await File.ReadAllBytesAsync(configFilePath);
+                await DeserializeConfigObjectAsync(configObject, data);
             }
             else
             {
@@ -350,7 +507,7 @@ namespace SimpleConfigs.Core
                     $"file with path: \"{configFilePath}\" does not exist!");
             }
 
-            CheckDataCorrectness(configObject, checkDataCorrectness);
+            await CheckDataCorrectnessAsync(configObject, checkDataCorrectness);
         }
 
         #endregion LoadConfig
@@ -359,7 +516,7 @@ namespace SimpleConfigs.Core
 
         /// <summary>
         /// Throw <see cref="ArgumentException"/> if <paramref name="configType"/>
-        /// not contained in <see cref="_registeredConfigs"/>
+        /// not contained in <see cref="RegisteredConfigs"/>
         /// </summary>
         private void CheckIsConfigTypeExist(Type configType)
         {
@@ -372,14 +529,14 @@ namespace SimpleConfigs.Core
 
         /// <summary>
         /// Throw <see cref="ArgumentException"/> if config with <typeparamref name="T"/> type
-        /// does not contained in <see cref="_registeredConfigs"/>
+        /// does not contained in <see cref="RegisteredConfigs"/>
         /// </summary>
         private void CheckIsConfigTypeExist<T>()
         {
             CheckIsConfigTypeExist(typeof(T));
         }
 
-        private byte[] SerializeConfigObject(object configObject)
+        private async Task<byte[]> SerializeConfigObjectAsync(object configObject)
         {
             Type configObjectType = configObject.GetType();
 
@@ -389,20 +546,30 @@ namespace SimpleConfigs.Core
                 serializableObject.OnBeforeSerialize();
             }
 
-            return _serializationManager.Serialize(configObject);
+            return await _serializationManager.SerializeAsync(configObject);
         }
 
-        private void DeserializeConfigObject(object populatingConfigObject, byte[] serializationData)
+        private async Task DeserializeConfigObjectAsync(object populatingConfigObject, byte[] serializationData)
         {
             Type configObjectType = populatingConfigObject.GetType();
 
-            _serializationManager.Deserialize(populatingConfigObject, serializationData);
+            await _serializationManager.DeserializeAsync(populatingConfigObject, serializationData);
 
             if (typeof(ISerializationListner).IsAssignableFrom(configObjectType))
             {
                 ISerializationListner serializableObject = (ISerializationListner)populatingConfigObject;
                 serializableObject.OnAfterDeserialized();
             }
+        }
+
+        private string GetFilePathForConfig(Type configType)
+        {
+            string appDirectory = PathUtilities.GetApplicationDirectory();
+            string commonDictionary = CommonRelativeDirectoryPath == null ? string.Empty : CommonRelativeDirectoryPath;
+            string configPath = ConfigInfoUtilities.GetRelativePathForConfigFile(
+                configType, _pathOverrideSettings[configType]);
+
+            return Path.Combine(appDirectory, commonDictionary, configPath);
         }
 
         #endregion Common

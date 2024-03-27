@@ -15,9 +15,9 @@ internal class Program
             typeof(TestConfigWithRelativePathAndNameAttribute),
             typeof(TestConfigWithAttributesAndInterfaces));
 
-        s_configsService.InitializeConfigsAsync();
+        await s_configsService.InitializeConfigsAsync();
 
-       var consoleInfo = (TestConfigWithRelativePathAttribute)s_configsService
+        var consoleInfo = (TestConfigWithRelativePathAttribute)s_configsService
             .GetConfig(typeof(TestConfigWithRelativePathAttribute));
         Console.ForegroundColor = consoleInfo.ForegroundColor;
         Console.BackgroundColor = consoleInfo.BackgroundColor;
@@ -48,6 +48,22 @@ internal class Program
             $"and HP: {new Random().Next(1, character.ChraracterMaxHP)}");
         timestampts.ApplicationStopTime = DateTime.Now;
 
-        s_configsService.SaveConfigsToFilesAsync();
+        await s_configsService.SaveConfigsToFilesAsync();
+
+        var configsService2 = new ConfigsService(
+            new JsonSerializationManager(),
+            (typeof(TestConfigWithoutAnyAttributesAndInterfaces), null),
+            (typeof(TestConfigWithRelativePathAttribute), new PathSettings(null, "nameOverride 1.txt")),
+            (typeof(TestConfigWithRelativePathAndNameAttribute), new PathSettings("PathOverride 1", null)),
+            (typeof(TestConfigWithAttributesAndInterfaces), new PathSettings("PathOverride 2", "nameOverride 2.cfg")));
+
+        configsService2.CommonRelativeDirectoryPath = Path.Combine("ConfigsService", "2");
+        await configsService2.InitializeConfigsAsync();
+        await Console.Out.WriteLineAsync($"Created {nameof(configsService2)} config files!");
+        await configsService2.SaveConfigsToFilesAsync();
+
+        await Console.Out.WriteLineAsync($"Press any key to delete all config files from {nameof(configsService2)}");
+        var key = Console.ReadKey();
+        await configsService2.DeleteAllConfigFilesAsync();
     }
 }

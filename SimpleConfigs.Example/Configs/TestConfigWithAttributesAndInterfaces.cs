@@ -22,12 +22,14 @@ namespace SimpleConfigs.Test.Configs
             _applicationStopTicks = ApplicationStopTime.Ticks;
         }
 
-        public void CheckDataCorrectnessAsync()
+        public Task CheckDataCorrectnessAsync()
         {
             if (_applicationStartTicks < 0 || _applicationStopTicks < 0)
             {
                 throw new ConfigDataIncorrectException("Time ticks should not be less then zero.");
             }
+
+            return Task.CompletedTask;
         }
 
         public void OnAfterDeserialized()

@@ -6,22 +6,23 @@ namespace SimpleConfigs.JSON.SerializationManagers
 {
     public class JsonSerializationManager : ISerializationManager
     {
-        public void Deserialize(object populatingObject, byte[] serializationData)
+        public async Task DeserializeAsync(object populatingObject, byte[] serializationData)
         {
             string serializationDataString = Encoding.UTF8.GetString(serializationData);
             
-            JsonConvert.PopulateObject(
+            await Task.Run(() => JsonConvert.PopulateObject(
                 serializationDataString, 
                 populatingObject, 
                 new JsonSerializerSettings
                 {
                     ContractResolver = new CollectionClearingContractResolver(),
-                });
+                }));
         }
 
-        public byte[] Serialize(object serializableObject)
+        public async Task<byte[]> SerializeAsync(object serializableObject)
         {
-            string serializationDataString = JsonConvert.SerializeObject(serializableObject, Formatting.Indented);
+            string serializationDataString = await Task.Run(
+                () => JsonConvert.SerializeObject(serializableObject, Formatting.Indented));
 
             return Encoding.UTF8.GetBytes(serializationDataString);
         }

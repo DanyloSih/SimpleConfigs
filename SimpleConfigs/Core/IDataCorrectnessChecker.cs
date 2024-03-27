@@ -5,6 +5,6 @@
         /// <summary>
         /// May throw an exception if some data in the object is unacceptable.
         /// </summary>
-        public void CheckDataCorrectness();
+        public Task CheckDataCorrectnessAsync();
     }
 }

@@ -1,15 +1,19 @@
 ﻿using System.Reflection;
 using SimpleConfigs.Attributes;
+using SimpleConfigs.Core;
 
 namespace SimpleConfigs.Utilities
 {
     public static class ConfigInfoUtilities
     {
-        public static string GetConfigFileName(object configObject)
+        public static string GetConfigFileName(Type configObjectType, PathSettings? pathOverriteSettings = null)
         {
-            Type configObjectType = configObject.GetType();
+            if (pathOverriteSettings != null && !string.IsNullOrEmpty(pathOverriteSettings.FileName))
+            {
+                return pathOverriteSettings.FileName;
+            }
 
-            ConfigNameAttribute configNameAttribute = configObjectType.GetCustomAttribute<ConfigNameAttribute>();
+            ConfigNameAttribute? configNameAttribute = configObjectType.GetCustomAttribute<ConfigNameAttribute>();
 
             if (configNameAttribute != null)
             {
@@ -19,21 +23,28 @@ namespace SimpleConfigs.Utilities
             return $"{configObjectType.Name}.cfg";
         }
 
-        public static string GetFullPathForConfigFile(object configObject)
+        public static string GetRelativePathForConfigFile(Type configObjectType, PathSettings? pathOverriteSettings = null)
         {
-            Type configObjectType = configObject.GetType();
-            string configFileName = GetConfigFileName(configObject);
+            string configFileName = GetConfigFileName(configObjectType, pathOverriteSettings);
 
-            RelativePathAttribute relativePathAttribute = configObjectType.GetCustomAttribute<RelativePathAttribute>();
-
-            if (relativePathAttribute != null)
+            if (pathOverriteSettings != null && !string.IsNullOrEmpty(pathOverriteSettings.RelativeDirectoryPath))
             {
-                string relativePath = relativePathAttribute.RelativeDirectoryPath;
-                var relativeDirectoryName = Path.HasExtension(relativePath) ? Path.GetDirectoryName(relativePath) : relativePath;
-                return Path.Combine(PathUtilities.GetApplicationDirectory(), relativeDirectoryName!, configFileName);
+                return Path.Combine(pathOverriteSettings.RelativeDirectoryPath, configFileName);
             }
 
-            return Path.Combine(PathUtilities.GetApplicationDirectory(), configFileName);
+            RelativePathAttribute? relativePathAttribute = configObjectType.GetCustomAttribute<RelativePathAttribute>();
+            if (relativePathAttribute != null)
+            {
+                PathSettings attributePathSettigns = new PathSettings();
+                string? relativePath = relativePathAttribute.RelativeDirectoryPath;
+                attributePathSettigns.SetRelativeDirectoryPath(relativePath);
+                relativePath = attributePathSettigns.RelativeDirectoryPath;
+                return Path.Combine(
+                    string.IsNullOrEmpty(relativePath) ? string.Empty : relativePath, 
+                    configFileName);
+            }
+
+            return configFileName;
         }
     }
 }
