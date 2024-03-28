@@ -1,4 +1,6 @@
-﻿namespace SimpleConfigs.Core
+﻿using SimpleConfigs.Utilities;
+
+namespace SimpleConfigs.Core
 {
     public class PathSettings : ICloneable
     {
@@ -40,19 +42,7 @@
                 return;
             }
 
-            if (relativeFilePath.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
-            {
-                throw new ArgumentException("File path contains incorect chars!");
-            }
-
-            string? extension = Path.GetExtension(relativeFilePath);
-            string fileName = Path.GetFileName(relativeFilePath);
-
-            if (string.IsNullOrEmpty(extension))
-            {
-                throw new ArgumentException(
-                    $"File name \"{fileName}\" does not have extension!");
-            }
+            PathUtilities.CheckFilePathCorrectness(relativeFilePath);
 
             string? directory = Path.GetDirectoryName(relativeFilePath);
             _relativeDirectoryPath = string.IsNullOrEmpty(directory) ? null : directory;
@@ -67,24 +57,13 @@
                 return;
             }
 
-            if (fileName.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
-            {
-                throw new ArgumentException("File name contains incorect chars!");
-            }
+            PathUtilities.CheckFilePathCorrectness(fileName);
 
             var directoryPath = Path.GetDirectoryName(fileName);
             if (!string.IsNullOrEmpty(directoryPath))
             {
                 throw new ArgumentException(
                     $"File name should not contain directory path: \"{directoryPath}\"!");
-            }
-
-            string? extension = Path.GetExtension(fileName);
-
-            if (string.IsNullOrEmpty(extension))
-            {
-                throw new ArgumentException(
-                    $"File name \"{fileName}\" does not have extension!");
             }
 
             _fileName = fileName;
@@ -97,11 +76,8 @@
                 _relativeDirectoryPath = null;
                 return;
             }
-            
-            if (relativeDirectoryPath.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
-            {
-                throw new ArgumentException("Directory path contains incorect chars!");
-            }
+
+            PathUtilities.CheckDirectoryPathCorrectness(relativeDirectoryPath);
 
             _relativeDirectoryPath = relativeDirectoryPath;
         }

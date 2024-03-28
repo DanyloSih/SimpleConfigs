@@ -1,7 +1,7 @@
 ﻿using System.Drawing;
 using SimpleConfigs.Attributes;
 
-namespace SimpleConfigs.Test.Configs
+namespace SimpleConfigs.Example.Configs
 {
     [RelativePath("RelativePath/Test")]
     public class TestConfigWithRelativePathAttribute

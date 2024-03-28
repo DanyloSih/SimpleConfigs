@@ -1,6 +1,7 @@
 ﻿using SimpleConfigs.Core;
-using SimpleConfigs.Test.Configs;
+using SimpleConfigs.Example.Configs;
 using SimpleConfigs.JSON.SerializationManagers;
+using SimpleConfigs.Core.ConfigsServiceInterfaces;
 
 internal class Program
 {
@@ -16,7 +17,7 @@ internal class Program
             typeof(TestConfigWithRelativePathAndNameAttribute),
             typeof(TestConfigWithAttributesAndInterfaces));
 
-        await s_configsService.InitializeConfigsAsync();
+        await s_configsService.InitializeAllConfigsAsync();
 
         var consoleInfo = (TestConfigWithRelativePathAttribute)s_configsService
             .GetConfig(typeof(TestConfigWithRelativePathAttribute));
@@ -49,7 +50,7 @@ internal class Program
             $"and HP: {new Random().Next(1, character.ChraracterMaxHP)}");
         timestampts.ApplicationStopTime = DateTime.Now;
 
-        await s_configsService.SaveConfigsToFilesAsync();
+        await s_configsService.SaveAllConfigsToFilesAsync();
 
         var configsService2 = new ConfigsService(
             new JsonSerializationManager(),
@@ -62,12 +63,52 @@ internal class Program
         configsService2.SetPathOverrideSettings<TestConfigWithoutAnyAttributesAndInterfaces>(new PathSettings(null, "overridedName.json"));
 
         configsService2.CommonRelativeDirectoryPath = Path.Combine("ConfigsService", "2");
-        await configsService2.InitializeConfigsAsync();
+        await configsService2.InitializeAllConfigsAsync();
         await Console.Out.WriteLineAsync($"Created {nameof(configsService2)} config files!");
-        await configsService2.SaveConfigsToFilesAsync();
+        await configsService2.SaveAllConfigsToFilesAsync();
 
         await Console.Out.WriteLineAsync($"Press any key to delete all config files from {nameof(configsService2)}");
         var key = Console.ReadKey();
         await configsService2.DeleteAllConfigFilesAsync();
+
+        var formater = new ConfigsServicesPathsFormater("ConfigServicesHub", "TestSubdir", "copy ({id}){ex}");
+        ConfigsServicesHub configsServicesHub = new ConfigsServicesHub(
+            new LocalFileSystem(), new JsonSerializationManager(), formater, 10);
+        var hubType = typeof(TestConfigWithAttributesAndInterfaces);
+        configsServicesHub.RegisterTypeForAll(hubType, "configs hub type.json");
+        await configsServicesHub.InitializeTypeForAllAsync(hubType, inParallel: true);
+
+        var instances = configsServicesHub.GetTypeInstances<TestConfigWithAttributesAndInterfaces>();
+
+        await Console.Out.WriteLineAsync($"instances count: {instances.Count}");
+        Random rand = new Random();
+        instances.ForEach(x => x.JustInt = rand.Next(2, 1000000));
+        await configsServicesHub.SaveTypeForAllAsync(hubType, inParallel: true);
+
+        await Console.Out.WriteLineAsync($"Press any key to delete all config files from {nameof(configsServicesHub)}");
+        key = Console.ReadKey();
+        await configsServicesHub.DeleteTypeFileForAllAsync(hubType, inParallel: true);
+
+        await Console.Out.WriteLineAsync($"Press any key to create new config files for {nameof(configsServicesHub)}");
+        key = Console.ReadKey();
+        
+        await configsServicesHub.CreateTypeFileForAllAsync(hubType, inParallel: true);
+
+        await Console.Out.WriteLineAsync($"Press any key to load configs data for {nameof(configsServicesHub)}");
+        key = Console.ReadKey();
+
+        try
+        {
+            await configsServicesHub.LoadTypeForAllAsync(hubType, checkDataCorrectness: true, inParallel: true);
+        }
+        catch (Exception ex)
+        {
+            //Console.WriteLine(ex.Message);
+        }
+
+        await configsServicesHub.CheckDataCorrectnessForAllAsync(hubType, inParallel: true);
+
+        await Console.Out.WriteLineAsync($"Press any key to end programm.");
+        key = Console.ReadKey();
     }
 }

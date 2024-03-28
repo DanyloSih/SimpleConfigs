@@ -2,16 +2,18 @@
 using SimpleConfigs.Attributes;
 using SimpleConfigs.Core;
 
-namespace SimpleConfigs.Test.Configs
+namespace SimpleConfigs.Example.Configs
 {
     [RelativePath("RelativePath2"), ConfigName("DataStampts.txt")]
     public class TestConfigWithAttributesAndInterfaces : IDataCorrectnessChecker, ISerializationListner
     {
+        [JsonProperty("just_int")] public int JustInt = -1;
         [JsonProperty("application_start_ticks")] private long _applicationStartTicks = -1;
         [JsonProperty("application_stop_ticks")] private long _applicationStopTicks = -1;
 
-        public DateTime ApplicationStartTime;
-        public DateTime ApplicationStopTime;
+        [JsonIgnore()] public DateTime ApplicationStartTime;
+        [JsonIgnore()] public DateTime ApplicationStopTime;
+        
 
         public TestConfigWithAttributesAndInterfaces()
         {

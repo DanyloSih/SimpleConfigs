@@ -1,4 +1,4 @@
-﻿namespace SimpleConfigs.Test.Configs
+﻿namespace SimpleConfigs.Example.Configs
 {
     public class TestConfigWithoutAnyAttributesAndInterfaces
     {

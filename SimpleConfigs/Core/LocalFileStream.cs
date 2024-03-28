@@ -14,9 +14,10 @@
             _stream.Dispose();
         }
 
-        public Task WriteAsync(byte[] bytes, int offset, int count)
+        public async Task WriteAsync(byte[] bytes, int offset, int count)
         {
-           return _stream.WriteAsync(bytes, offset, count);
+            _stream.SetLength(count);
+            await _stream.WriteAsync(bytes, offset, count);
         }
     }
 }

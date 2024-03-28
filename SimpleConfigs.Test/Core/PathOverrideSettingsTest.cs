@@ -1,6 +1,6 @@
 using SimpleConfigs.Core;
 
-namespace SimpleConfigs.Test.Core 
+namespace SimpleConfigs.Example.Core 
 {
     public class PathOverrideSettingsTest
     {
