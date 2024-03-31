@@ -76,8 +76,17 @@ internal class Program
             new LocalFileSystem(), new JsonSerializationManager(), formater, 10);
         var hubType = typeof(TestConfigWithAttributesAndInterfaces);
         configsServicesHub.RegisterTypeForAll(hubType, "configs hub type.json");
-        await configsServicesHub.InitializeTypeForAllAsync(hubType, inParallel: true);
-
+        try
+        {
+            await configsServicesHub.InitializeTypeForAllAsync(hubType, inParallel: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await Console.Out.WriteLineAsync($"Press any key to exit.");
+            key = Console.ReadKey();
+            return;
+        }
         var instances = configsServicesHub.GetTypeInstances<TestConfigWithAttributesAndInterfaces>();
 
         await Console.Out.WriteLineAsync($"instances count: {instances.Count}");
@@ -100,13 +109,12 @@ internal class Program
         try
         {
             await configsServicesHub.LoadTypeForAllAsync(hubType, checkDataCorrectness: true, inParallel: true);
+            await configsServicesHub.CheckDataCorrectnessForAllAsync(hubType, inParallel: true);
         }
         catch (Exception ex)
         {
-            //Console.WriteLine(ex.Message);
+            Console.WriteLine(ex.Message);
         }
-
-        await configsServicesHub.CheckDataCorrectnessForAllAsync(hubType, inParallel: true);
 
         await Console.Out.WriteLineAsync($"Press any key to end programm.");
         key = Console.ReadKey();

@@ -1,6 +1,5 @@
-﻿using System.Collections.Immutable;
-using System.Threading.Tasks;
-using SimpleConfigs.Core.ConfigsServiceInterfaces;
+﻿using SimpleConfigs.Core.ConfigsServiceInterfaces;
+using SimpleConfigs.Extensions;
 using SimpleConfigs.Utilities;
 
 namespace SimpleConfigs.Core
@@ -35,58 +34,61 @@ namespace SimpleConfigs.Core
             } 
         }
 
-        public async Task InitializeTypeForAllAsync(Type configType, bool inParallel = false)
+        public Task InitializeTypeForAllAsync(
+            Type configType, bool checkDataCorrectness = true, bool inParallel = false, int timeoutInMilliseconds = 5000)
         {
-            await AsyncUtilities.ForEachAsync<ConfigsService, string>(
-                   _configsServices,
-                   configType.FullName!,
-                   async (value, context) => await value.InitializeConfigAsync(context),
-                   inParallel);
+            return AsyncUtilities.ForEachAsync<ConfigsService, string>(
+                _configsServices,
+                configType.FullName!,
+                async (value, context) => await value.InitializeConfigAsync(context, checkDataCorrectness, timeoutInMilliseconds),
+                inParallel).WaitAsync(timeoutInMilliseconds);
         }
 
-        public async Task SaveTypeForAllAsync(Type configType, bool inParallel = false)
+        public Task SaveTypeForAllAsync(
+            Type configType, bool checkDataCorrectness = true, bool inParallel = false, int timeoutInMilliseconds = 5000)
         {
-            await AsyncUtilities.ForEachAsync<ConfigsService, string>(
-                   _configsServices,
-                   configType.FullName!,
-                   async (value, context) => await value.SaveConfigToFileAsync(context),
-                   inParallel);
+            return AsyncUtilities.ForEachAsync<ConfigsService, string>(
+                _configsServices,
+                configType.FullName!,
+                async (value, context) => await value.SaveConfigToFileAsync(context, checkDataCorrectness),
+                inParallel).WaitAsync(timeoutInMilliseconds);
         }
 
-        public async Task LoadTypeForAllAsync(Type configType, bool checkDataCorrectness = true, bool inParallel = false)
+        public Task LoadTypeForAllAsync(
+            Type configType, bool checkDataCorrectness = true, bool inParallel = false, int timeoutInMilliseconds = 5000)
         {
-            await AsyncUtilities.ForEachAsync<ConfigsService, string>(
-                   _configsServices,
-                   configType.FullName!,
-                   async (value, context) => await value.LoadConfigFromFileAsync(context, checkDataCorrectness),
-                   inParallel);
+            return AsyncUtilities.ForEachAsync<ConfigsService, string>(
+                _configsServices,
+                configType.FullName!,
+                async (value, context) => await value.LoadConfigFromFileAsync(context, checkDataCorrectness),
+                inParallel).WaitAsync(timeoutInMilliseconds);
         }
 
-        public async Task CreateTypeFileForAllAsync(Type configType, bool inParallel = false)
+        public Task CreateTypeFileForAllAsync(Type configType, bool inParallel = false, int timeoutInMilliseconds = 5000)
         {
-            await AsyncUtilities.ForEachAsync<ConfigsService, string>(
-                   _configsServices,
-                   configType.FullName!,
-                   async (value, context) => await value.CreateConfigFileAsync(context),
-                   inParallel);
+            return AsyncUtilities.ForEachAsync<ConfigsService, string>(
+                _configsServices,
+                configType.FullName!,
+                async (value, context) => await value.CreateConfigFileAsync(context),
+                inParallel).WaitAsync(timeoutInMilliseconds);
         }
 
-        public async Task DeleteTypeFileForAllAsync(Type configType, bool inParallel = false)
+        public Task DeleteTypeFileForAllAsync(Type configType, bool inParallel = false, int timeoutInMilliseconds = 5000)
         {
-            await AsyncUtilities.ForEachAsync<ConfigsService, string>(
-                   _configsServices,
-                   configType.FullName!,
-                   async (value, context) => await value.DeleteConfigFileAsync(context),
-                   inParallel);
+            return AsyncUtilities.ForEachAsync<ConfigsService, string>(
+                _configsServices,
+                configType.FullName!,
+                async (value, context) => await value.DeleteConfigFileAsync(context),
+                inParallel).WaitAsync(timeoutInMilliseconds);
         }
 
-        public async Task CheckDataCorrectnessForAllAsync(Type configType, bool inParallel = false)
+        public Task CheckDataCorrectnessForAllAsync(Type configType, bool inParallel = false, int timeoutInMilliseconds = 5000)
         {
-            await AsyncUtilities.ForEachAsync<ConfigsService, string>(
-                   _configsServices,
-                   configType.FullName!,
-                   async (value, context) => await value.CheckDataCorrectnessAsync(context),
-                   inParallel);
+            return AsyncUtilities.ForEachAsync<ConfigsService, string>(
+                _configsServices,
+                configType.FullName!,
+                async (value, context) => await value.CheckDataCorrectnessAsync(context),
+                inParallel).WaitAsync(timeoutInMilliseconds);
         }
 
         public List<T?> GetTypeInstances<T>()

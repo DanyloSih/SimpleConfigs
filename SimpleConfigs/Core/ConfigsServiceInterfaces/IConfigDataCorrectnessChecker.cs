@@ -1,7 +1,11 @@
-﻿namespace SimpleConfigs.Core.ConfigsServiceInterfaces
+﻿using SimpleConfigs.Extensions;
+
+namespace SimpleConfigs.Core.ConfigsServiceInterfaces
 {
     public interface IConfigDataCorrectnessChecker : IConfigsContainer
     {
+        public int CheckDataCorrectnessTimeoutInMilliseconds { get; set; }
+
         /// <summary>
         /// Invoke <see cref="IDataCorrectnessChecker.CheckDataCorrectnessAsync"/> method <br/>
         /// if config implement <see cref="IDataCorrectnessChecker"/> interface.
@@ -15,8 +19,16 @@
         /// <inheritdoc cref="IConfigDataCorrectnessChecker.CheckDataCorrectnessAsync(string)"/> <br/>
         /// For each config!
         /// </summary>
-        public static async Task CheckAllConfigsDataCorrectnessAsync(
-            this IConfigsServicesHubMember member)
+        public static Task CheckAllConfigsDataCorrectnessAsync(
+            this IConfigDataCorrectnessChecker member)
+        {
+            int awaitTime = member.RegisteredConfigs.Count 
+                * member.CheckDataCorrectnessTimeoutInMilliseconds;
+
+            return CheckAllConfigsDataCorrectnessBaseAsync(member).WaitAsync(awaitTime);
+        }
+
+        private static async Task CheckAllConfigsDataCorrectnessBaseAsync(IConfigDataCorrectnessChecker member)
         {
             foreach (var item in member.RegisteredConfigs)
             {
@@ -25,21 +37,21 @@
         }
 
         /// <summary>
-        /// <inheritdoc cref="IConfigDataCorrectnessChecker"/>
+        /// <inheritdoc cref="IConfigDataCorrectnessChecker.CheckDataCorrectnessAsync(string)"/>
         /// </summary>
-        public static async Task CheckDataCorrectnessAsync(
-            this IConfigsServicesHubMember member, Type configType)
+        public static Task CheckDataCorrectnessAsync(
+            this IConfigDataCorrectnessChecker member, Type configType)
         {
-            await member.CheckDataCorrectnessAsync(configType.FullName!);
+            return member.CheckDataCorrectnessAsync(configType.FullName!);
         }
 
         /// <summary>
-        /// <inheritdoc cref="IConfigDataCorrectnessChecker"/>
+        /// <inheritdoc cref="IConfigDataCorrectnessChecker.CheckDataCorrectnessAsync(string)"/>
         /// </summary>
-        public static async Task CheckDataCorrectnessAsync<T>(
-            this IConfigsServicesHubMember member)
+        public static Task CheckDataCorrectnessAsync<T>(
+            this IConfigDataCorrectnessChecker member)
         {
-            await member.CheckDataCorrectnessAsync(typeof(T).FullName!);
+            return member.CheckDataCorrectnessAsync(typeof(T).FullName!);
         }
     }
 }

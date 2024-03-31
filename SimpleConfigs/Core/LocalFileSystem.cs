@@ -1,9 +1,19 @@
 ﻿using System.Reflection;
+using SimpleConfigs.Extensions;
 
 namespace SimpleConfigs.Core
 {
     public class LocalFileSystem : IFileSystem
     {
+        public int DeleteFileTimeoutInMilliseconds { get; set; }
+        public int ReadAllBytesTimeoutInMilliseconds { get; set; }
+
+        public LocalFileSystem(int deleteFileTimeout = 1000, int readAllBytesTimeout = 1000)
+        {
+            DeleteFileTimeoutInMilliseconds = deleteFileTimeout;
+            ReadAllBytesTimeoutInMilliseconds = readAllBytesTimeout;
+        }
+
         public Task CreateDirectoriesAlongPathAsync(string path)
         {
             string directoryPath = Path.GetDirectoryName(path)!;
@@ -28,9 +38,9 @@ namespace SimpleConfigs.Core
             return new LocalFileStream(File.Create(filePath));
         }
 
-        public async Task DeleteAsync(string filePath)
+        public Task DeleteAsync(string filePath)
         {
-            await Task.Run(() => File.Delete(filePath));
+            return Task.Run(() => File.Delete(filePath)).WaitAsync(DeleteFileTimeoutInMilliseconds);
         }
 
         public bool IsFileExist(string filePath)
@@ -43,9 +53,9 @@ namespace SimpleConfigs.Core
             return new LocalFileStream(File.OpenWrite(filePath));
         }
 
-        public async Task<byte[]> ReadAllBytesAsync(string filePath)
+        public Task<byte[]> ReadAllBytesAsync(string filePath)
         {
-            return await File.ReadAllBytesAsync(filePath);
+            return File.ReadAllBytesAsync(filePath).WaitAsync(ReadAllBytesTimeoutInMilliseconds);
         }
     }
 }

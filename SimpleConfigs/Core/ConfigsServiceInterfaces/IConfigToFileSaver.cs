@@ -1,7 +1,13 @@
-﻿namespace SimpleConfigs.Core.ConfigsServiceInterfaces
+﻿using SimpleConfigs.Extensions;
+
+namespace SimpleConfigs.Core.ConfigsServiceInterfaces
 {
     public interface IConfigToFileSaver : IConfigsContainer
     {
+        public int CheckDataCorrectnessTimeoutInMilliseconds { get; set; }
+        public int SerializationTimeoutInMilliseconds { get; set; }
+        public int FileWriteTimeoutInMilliseconds { get; set; }
+
         /// <summary>
         /// Creates config file with serialized data if it do not already exist, 
         /// or overwriting already existing config file.
@@ -15,8 +21,20 @@
         /// <inheritdoc cref="IConfigToFileSaver.SaveConfigToFileAsync(string, bool)"/> <br/> 
         /// For each config!
         /// </summary>
-        public static async Task SaveAllConfigsToFilesAsync(
-            this IConfigsServicesHubMember member, bool checkDataCorrectness = true)
+        public static Task SaveAllConfigsToFilesAsync(
+            this IConfigToFileSaver member, bool checkDataCorrectness = true)
+        {
+            int operationTime = member.CheckDataCorrectnessTimeoutInMilliseconds
+                + member.SerializationTimeoutInMilliseconds 
+                + member.FileWriteTimeoutInMilliseconds;
+
+            int awaitTime = operationTime * member.RegisteredConfigs.Count;
+
+            return SaveAllConfigsToFilesBaseAsync(member, checkDataCorrectness)
+                .WaitAsync(awaitTime);
+        }
+
+        private static async Task SaveAllConfigsToFilesBaseAsync(IConfigToFileSaver member, bool checkDataCorrectness = true)
         {
             foreach (var item in member.RegisteredConfigs)
             {
@@ -27,19 +45,19 @@
         /// <summary>
         /// <inheritdoc cref="IConfigToFileSaver.SaveConfigToFileAsync(string, bool)"/>
         /// </summary>
-        public static async Task SaveConfigToFileAsync(
-            this IConfigsServicesHubMember member, Type configType, bool checkDataCorrectness = true)
+        public static Task SaveConfigToFileAsync(
+            this IConfigToFileSaver member, Type configType, bool checkDataCorrectness = true)
         {
-            await member.SaveConfigToFileAsync(configType.FullName!, checkDataCorrectness);
+            return member.SaveConfigToFileAsync(configType.FullName!, checkDataCorrectness);
         }
 
         /// <summary>
         /// <inheritdoc cref="IConfigToFileSaver.SaveConfigToFileAsync(string, bool)"/>
         /// </summary>
-        public static async Task SaveConfigToFileAsync<T>(
-            this IConfigsServicesHubMember member, bool checkDataCorrectness = true)
+        public static Task SaveConfigToFileAsync<T>(
+            this IConfigToFileSaver member, bool checkDataCorrectness = true)
         {
-            await member.SaveConfigToFileAsync(typeof(T).FullName!, checkDataCorrectness);
+            return member.SaveConfigToFileAsync(typeof(T).FullName!, checkDataCorrectness);
         }
     }
 }

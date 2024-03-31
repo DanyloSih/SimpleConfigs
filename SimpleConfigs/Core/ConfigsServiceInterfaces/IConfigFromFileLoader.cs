@@ -1,7 +1,12 @@
-﻿namespace SimpleConfigs.Core.ConfigsServiceInterfaces
+﻿using SimpleConfigs.Extensions;
+
+namespace SimpleConfigs.Core.ConfigsServiceInterfaces
 {
     public interface IConfigFromFileLoader : IConfigsContainer
     {
+        public int CheckDataCorrectnessTimeoutInMilliseconds { get; set; }
+        public int DeserializationTimeoutInMilliseconds { get; set; }
+
         /// <summary>
         /// Load deserealized config data from file if file exist, if not - throw <see cref="InvalidOperationException"/>.
         /// </summary>
@@ -14,8 +19,20 @@
         /// <inheritdoc cref="IConfigFromFileLoader.LoadConfigFromFileAsync(string, bool)"/> <br/> 
         /// For each config!
         /// </summary>
-        public static async Task LoadAllConfigsFromFilesAsync(
-            this IConfigsServicesHubMember member, bool checkDataCorrectness = true)
+        public static Task LoadAllConfigsFromFilesAsync(
+            this IConfigFromFileLoader member, bool checkDataCorrectness = true)
+        {
+            int operationTime = member.CheckDataCorrectnessTimeoutInMilliseconds
+                + member.DeserializationTimeoutInMilliseconds;
+
+            int awaitTime = operationTime * member.RegisteredConfigs.Count;
+
+            return LoadAllConfigsFromFilesBaseAsync(member, checkDataCorrectness)
+                .WaitAsync(awaitTime);
+        }
+
+        private static async Task LoadAllConfigsFromFilesBaseAsync(
+            this IConfigFromFileLoader member, bool checkDataCorrectness = true)
         {
             foreach (var item in member.RegisteredConfigs)
             {
@@ -26,19 +43,19 @@
         /// <summary>
         /// <inheritdoc cref="IConfigFromFileLoader.LoadConfigFromFileAsync(string, bool)"/>
         /// </summary>
-        public static async Task LoadConfigFromFileAsync(
-            this IConfigsServicesHubMember member, Type configType, bool checkDataCorrectness = true)
+        public static Task LoadConfigFromFileAsync(
+            this IConfigFromFileLoader member, Type configType, bool checkDataCorrectness = true)
         {
-            await member.LoadConfigFromFileAsync(configType.FullName!, checkDataCorrectness);
+            return member.LoadConfigFromFileAsync(configType.FullName!, checkDataCorrectness);
         }
 
         /// <summary>
         /// <inheritdoc cref="IConfigFromFileLoader.LoadConfigFromFileAsync(string, bool)"/>
         /// </summary>
-        public static async Task LoadConfigFromFileAsync<T>(
-            this IConfigsServicesHubMember member, bool checkDataCorrectness = true)
+        public static Task LoadConfigFromFileAsync<T>(
+            this IConfigFromFileLoader member, bool checkDataCorrectness = true)
         {
-            await member.LoadConfigFromFileAsync(typeof(T).FullName!, checkDataCorrectness);
+            return member.LoadConfigFromFileAsync(typeof(T).FullName!, checkDataCorrectness);
         }
     }
 }

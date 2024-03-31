@@ -1,7 +1,11 @@
-﻿namespace SimpleConfigs.Core.ConfigsServiceInterfaces
+﻿using SimpleConfigs.Extensions;
+
+namespace SimpleConfigs.Core.ConfigsServiceInterfaces
 {
     public interface IConfigFileDeleter : IConfigsContainer
     {
+        public int ConfigDeletingTimeoutInMilliseconds { get; set; }
+
         /// <summary>
         /// Deletes a config file if it exists.
         /// </summary>
@@ -10,13 +14,20 @@
 
     public static class IConfigFileDeleterExtensions
     {
-
         /// <summary>
         /// <inheritdoc cref="IConfigFileDeleter.DeleteConfigFileAsync(string)"/><br/> 
         /// For each config!
         /// </summary>
-        public static async Task DeleteAllConfigFilesAsync(
-            this IConfigsServicesHubMember member)
+        public static Task DeleteAllConfigFilesAsync(
+            this IConfigFileDeleter member)
+        {
+            int awaitTime = member.RegisteredConfigs.Count *
+                member.ConfigDeletingTimeoutInMilliseconds;
+
+            return DeleteAllConfigFilesBaseAsync(member).WaitAsync(awaitTime);
+        }
+
+        private static async Task DeleteAllConfigFilesBaseAsync(IConfigFileDeleter member)
         {
             foreach (var item in member.RegisteredConfigs)
             {
@@ -27,19 +38,19 @@
         /// <summary>
         /// <inheritdoc cref="IConfigFileDeleter.DeleteConfigFileAsync(string)"/>
         /// </summary>
-        public static async Task DeleteConfigFileAsync(
-            this IConfigsServicesHubMember member, Type configType)
+        public static Task DeleteConfigFileAsync(
+            this IConfigFileDeleter member, Type configType)
         {
-            await member.DeleteConfigFileAsync(configType.FullName!);
+            return member.DeleteConfigFileAsync(configType.FullName!);
         }
 
         /// <summary>
         /// <inheritdoc cref="IConfigFileDeleter.DeleteConfigFileAsync(string)"/>
         /// </summary>
-        public static async Task DeleteConfigFileAsync<T>(
-           this IConfigsServicesHubMember member)
+        public static Task DeleteConfigFileAsync<T>(
+           this IConfigFileDeleter member)
         {
-            await member.DeleteConfigFileAsync(typeof(T).FullName!);
+            return member.DeleteConfigFileAsync(typeof(T).FullName!);
         }
     }
 }

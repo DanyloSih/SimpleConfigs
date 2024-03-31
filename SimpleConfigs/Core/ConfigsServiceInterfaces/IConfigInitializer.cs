@@ -1,4 +1,6 @@
-﻿namespace SimpleConfigs.Core.ConfigsServiceInterfaces
+﻿using SimpleConfigs.Extensions;
+
+namespace SimpleConfigs.Core.ConfigsServiceInterfaces
 {
     public interface IConfigInitializer : IConfigsContainer
     {
@@ -25,10 +27,21 @@
         /// 2. <inheritdoc cref="IConfigFromFileLoader.LoadConfigFromFileAsync(string, bool)"/>
         /// </summary>
         public static async Task InitializeConfigAsync(
-            this IConfigsServicesHubMember member, string configTypeName, bool checkDataCorrectness = true)
+            this IConfigsServicesHubMember member,
+            string configTypeName,
+            bool checkDataCorrectness = true,
+            int timeoutInMilliseconds = 5000)
         {
             await member.CreateConfigFileAsync(configTypeName);
-            await member.LoadConfigFromFileAsync(configTypeName, checkDataCorrectness);
+            try
+            {
+                await member.LoadConfigFromFileAsync(configTypeName, checkDataCorrectness)
+                    .WaitAsync(timeoutInMilliseconds);
+            }
+            catch
+            {
+                throw;
+            }
         }
 
         /// <summary>

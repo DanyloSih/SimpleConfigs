@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Reflection;
 using SimpleConfigs.Core.ConfigsServiceInterfaces;
+using SimpleConfigs.Extensions;
 using SimpleConfigs.Utilities;
 
 namespace SimpleConfigs.Core
@@ -25,6 +26,12 @@ namespace SimpleConfigs.Core
             get => _commonPathSettings.RelativeDirectoryPath;
             set => _commonPathSettings.SetRelativeDirectoryPath(value);
         }
+        public int CheckDataCorrectnessTimeoutInMilliseconds { get; set; } = 5000;
+        public int SerializationTimeoutInMilliseconds { get; set; } = 5000;
+        public int DeserializationTimeoutInMilliseconds { get; set; } = 5000;
+        public int ConfigCreationTimeoutInMilliseconds { get; set; } = 5000;
+        public int ConfigDeletingTimeoutInMilliseconds { get; set; } = 5000;
+        public int FileWriteTimeoutInMilliseconds { get; set; } = 5000;
 
         #region Constructors
 
@@ -147,10 +154,12 @@ namespace SimpleConfigs.Core
 
         #region ConfigDataCorrectness
         
-        public async Task CheckDataCorrectnessAsync(string configTypeName)
+        public Task CheckDataCorrectnessAsync(string configTypeName)
         {
             CheckIsConfigTypeExist(configTypeName);
-            await CheckDataCorrectnessAsync(_registeredConfigs[configTypeName], true);
+
+            return CheckDataCorrectnessAsync(_registeredConfigs[configTypeName], true)
+                .WaitAsync(CheckDataCorrectnessTimeoutInMilliseconds);
         }
 
         private async Task CheckDataCorrectnessAsync(object configObject, bool checkDataCorrectness)
@@ -159,15 +168,9 @@ namespace SimpleConfigs.Core
              && typeof(IDataCorrectnessChecker).IsAssignableFrom(configObject.GetType()))
             {
                 IDataCorrectnessChecker dataCorrectnessChecker = (IDataCorrectnessChecker)configObject;
-                try
-                {
-                    await dataCorrectnessChecker.CheckDataCorrectnessAsync();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    throw;
-                }
+
+                await dataCorrectnessChecker.CheckDataCorrectnessAsync()
+                         .WaitAsync(CheckDataCorrectnessTimeoutInMilliseconds);
             }
         }
 
@@ -175,7 +178,13 @@ namespace SimpleConfigs.Core
 
         #region CreateConfig
           
-        public async Task CreateConfigFileAsync(string configTypeName)
+        public Task CreateConfigFileAsync(string configTypeName)
+        {
+            return CreateConfigFileBaseAsync(configTypeName)
+                .WaitAsync(SerializationTimeoutInMilliseconds + ConfigCreationTimeoutInMilliseconds);
+        }
+
+        private async Task CreateConfigFileBaseAsync(string configTypeName)
         {
             CheckIsConfigTypeExist(configTypeName);
 
@@ -188,48 +197,80 @@ namespace SimpleConfigs.Core
             {
                 using (IFileStream stream = _fileSystem.Create(configFilePath))
                 {
-                    byte[] serializationData = await SerializeConfigObjectAsync(configObject);
-                    await stream.WriteAsync(serializationData, 0, serializationData.Length);
+                    byte[] serializationData = await SerializeConfigObjectAsync(configObject)
+                        .WaitAsync(SerializationTimeoutInMilliseconds);
+
+                    await stream.WriteAsync(serializationData, 0, serializationData.Length)
+                        .WaitAsync(ConfigCreationTimeoutInMilliseconds);
                 }
             }
+
         }
 
         #endregion CreateConfig
 
         #region DeleteConfig
-        
-        public async Task DeleteConfigFileAsync(string configTypeName)
+
+        public Task DeleteConfigFileAsync(string configTypeName)
+        {
+            return DeleteConfigFileBaseAsync(configTypeName)
+                .WaitAsync(ConfigDeletingTimeoutInMilliseconds);
+        }
+
+        private async Task DeleteConfigFileBaseAsync(string configTypeName)
         {
             CheckIsConfigTypeExist(configTypeName);
             string configFilePath = GetFilePathForConfig(configTypeName);
 
             if (_fileSystem.IsFileExist(configFilePath))
             {
-                await _fileSystem.DeleteAsync(configFilePath);
+                await _fileSystem.DeleteAsync(configFilePath)
+                    .WaitAsync(ConfigDeletingTimeoutInMilliseconds); ;
             }
         }
 
         #endregion
 
         #region SaveConfig     
-      
-        public async Task SaveConfigToFileAsync(string configTypeName, bool checkDataCorrectness = true)
+
+        public Task SaveConfigToFileAsync(string configTypeName, bool checkDataCorrectness = true)
+        {
+            int operationTime = CheckDataCorrectnessTimeoutInMilliseconds
+                + SerializationTimeoutInMilliseconds
+                + FileWriteTimeoutInMilliseconds;
+
+            return SaveConfigToFileBaseAsync(configTypeName, checkDataCorrectness)
+                .WaitAsync(operationTime);
+        }
+
+        private async Task SaveConfigToFileBaseAsync(string configTypeName, bool checkDataCorrectness = true)
         {
             CheckIsConfigTypeExist(configTypeName);
 
             object configObject = _registeredConfigs[configTypeName];
 
-            await CheckDataCorrectnessAsync(configObject, checkDataCorrectness);
+            try
+            {
+                await CheckDataCorrectnessAsync(configObject, checkDataCorrectness)
+                    .WaitAsync(CheckDataCorrectnessTimeoutInMilliseconds);
+            }
+            catch
+            {
+                await Console.Out.WriteLineAsync($"\"{configTypeName}\" serialization canceled due to exception!");
+                throw;
+            }
 
             string configFilePath = GetFilePathForConfig(configObject.GetType().FullName!);
 
-            byte[] serializationData = await SerializeConfigObjectAsync(configObject);
+            byte[] serializationData = await SerializeConfigObjectAsync(configObject)
+                .WaitAsync(SerializationTimeoutInMilliseconds);
 
             if (_fileSystem.IsFileExist(configFilePath))
             {
                 using (IFileStream stream = _fileSystem.OpenWrite(configFilePath))
                 {
-                    await stream.WriteAsync(serializationData, 0, serializationData.Length);
+                    await stream.WriteAsync(serializationData, 0, serializationData.Length)
+                        .WaitAsync(FileWriteTimeoutInMilliseconds);
                 }
             }
             else
@@ -237,7 +278,8 @@ namespace SimpleConfigs.Core
                 await _fileSystem.CreateDirectoriesAlongPathAsync(configFilePath);
                 using (IFileStream stream = _fileSystem.Create(configFilePath))
                 {
-                    await stream.WriteAsync(serializationData, 0, serializationData.Length);
+                    await stream.WriteAsync(serializationData, 0, serializationData.Length)
+                        .WaitAsync(FileWriteTimeoutInMilliseconds);
                 }
             }
         }
@@ -245,8 +287,17 @@ namespace SimpleConfigs.Core
         #endregion SaveConfig
 
         #region LoadConfig
-           
-        public async Task LoadConfigFromFileAsync(string configTypeName, bool checkDataCorrectness = true)
+
+        public Task LoadConfigFromFileAsync(string configTypeName, bool checkDataCorrectness = true)
+        {
+            int operationTime = CheckDataCorrectnessTimeoutInMilliseconds
+                + DeserializationTimeoutInMilliseconds;
+
+            return LoadConfigFromBaseFileAsync(configTypeName, checkDataCorrectness)
+                .WaitAsync(operationTime);
+        }
+
+        private async Task LoadConfigFromBaseFileAsync(string configTypeName, bool checkDataCorrectness = true)
         {
             CheckIsConfigTypeExist(configTypeName!);
             object configObject = _registeredConfigs[configTypeName];
@@ -256,7 +307,27 @@ namespace SimpleConfigs.Core
             if (_fileSystem.IsFileExist(configFilePath))
             {
                 var data = await _fileSystem.ReadAllBytesAsync(configFilePath);
-                await DeserializeConfigObjectAsync(configObject, data, checkDataCorrectness);
+                Type configObjectType = configObject.GetType();
+
+                await _serializationManager.DeserializeAsync(configObject, data)
+                    .WaitAsync(DeserializationTimeoutInMilliseconds);
+
+                try
+                {
+                    await CheckDataCorrectnessAsync(configObject, checkDataCorrectness)
+                        .WaitAsync(CheckDataCorrectnessTimeoutInMilliseconds);
+                }
+                catch
+                {
+                    await Console.Out.WriteLineAsync($"\"{configObjectType.Name}\" deserialization canceled due to exception!");
+                    throw;
+                }
+
+                if (typeof(ISerializationListner).IsAssignableFrom(configObjectType))
+                {
+                    ISerializationListner serializableObject = (ISerializationListner)configObject;
+                    serializableObject.OnAfterDeserialized();
+                }
             }
             else
             {
@@ -293,21 +364,8 @@ namespace SimpleConfigs.Core
                 serializableObject.OnBeforeSerialize();
             }
 
-            return await _serializationManager.SerializeAsync(configObject);
-        }
-
-        private async Task DeserializeConfigObjectAsync(object populatingConfigObject, byte[] serializationData, bool checkDataCorrectness = true)
-        {
-            Type configObjectType = populatingConfigObject.GetType();
-
-            await _serializationManager.DeserializeAsync(populatingConfigObject, serializationData);
-            await CheckDataCorrectnessAsync(populatingConfigObject, checkDataCorrectness);
-
-            if (typeof(ISerializationListner).IsAssignableFrom(configObjectType))
-            {
-                ISerializationListner serializableObject = (ISerializationListner)populatingConfigObject;
-                serializableObject.OnAfterDeserialized();
-            }
+            return await _serializationManager.SerializeAsync(configObject)
+                .WaitAsync(SerializationTimeoutInMilliseconds);
         }
 
         private string GetFilePathForConfig(string configTypeName)

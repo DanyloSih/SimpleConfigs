@@ -1,12 +1,17 @@
-﻿namespace SimpleConfigs.Core
+﻿using SimpleConfigs.Extensions;
+
+namespace SimpleConfigs.Core
 {
     public class LocalFileStream : IFileStream
     {
         private FileStream _stream;
 
-        public LocalFileStream(FileStream stream)
+        public int WriteTimeoutInMilliseconds { get; set; }
+
+        public LocalFileStream(FileStream stream, int writeTimeout = 1000)
         {
             _stream = stream;
+            WriteTimeoutInMilliseconds = writeTimeout;
         }
 
         public void Dispose()
@@ -14,10 +19,10 @@
             _stream.Dispose();
         }
 
-        public async Task WriteAsync(byte[] bytes, int offset, int count)
+        public Task WriteAsync(byte[] bytes, int offset, int count)
         {
             _stream.SetLength(count);
-            await _stream.WriteAsync(bytes, offset, count);
+            return _stream.WriteAsync(bytes, offset, count).WaitAsync(WriteTimeoutInMilliseconds);
         }
     }
 }

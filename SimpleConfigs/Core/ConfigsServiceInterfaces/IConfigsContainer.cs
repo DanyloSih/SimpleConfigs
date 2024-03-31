@@ -1,6 +1,5 @@
 ﻿namespace SimpleConfigs.Core.ConfigsServiceInterfaces
 {
-
     public interface IConfigsContainer
     {
         /// <summary>
@@ -25,7 +24,7 @@
         /// <summary>
         /// <inheritdoc cref="IConfigsContainer.IsConfigExist(string)"/>
         /// </summary>
-        public static object GetConfig(this IConfigsServicesHubMember member, Type configType)
+        public static object GetConfig(this IConfigsContainer member, Type configType)
         {
             return member.GetConfig(configType.FullName!);
         }
@@ -33,7 +32,7 @@
         /// <summary>
         /// <inheritdoc cref="IConfigsContainer.IsConfigExist(string)"/>
         /// </summary>
-        public static T GetConfig<T>(this IConfigsServicesHubMember member)
+        public static T GetConfig<T>(this IConfigsContainer member)
         {
             return (T)member.GetConfig(typeof(T).FullName!);
         }
@@ -41,7 +40,7 @@
         /// <summary>
         /// <inheritdoc cref="IConfigsContainer.IsConfigExist(string)"/>
         /// </summary>
-        public static bool IsConfigExist(this IConfigsServicesHubMember member, Type configType)
+        public static bool IsConfigExist(this IConfigsContainer member, Type configType)
         {
             return member.IsConfigExist(configType.FullName!);
         }
@@ -49,7 +48,7 @@
         /// <summary>
         /// <inheritdoc cref="IConfigsContainer.IsConfigExist(string)"/>
         /// </summary>
-        public static bool IsConfigExist<T>(this IConfigsServicesHubMember member)
+        public static bool IsConfigExist<T>(this IConfigsContainer member)
         {
             return member.IsConfigExist(typeof(T).FullName!);
         }

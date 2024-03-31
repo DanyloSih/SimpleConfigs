@@ -2,6 +2,9 @@
 {
     public interface IFileSystem
     {
+        public int DeleteFileTimeoutInMilliseconds { get; set; }
+        public int ReadAllBytesTimeoutInMilliseconds { get; set; }
+
         public bool IsFileExist(string filePath);
         public IFileStream Create(string filePath);
         public IFileStream OpenWrite(string filePath);
