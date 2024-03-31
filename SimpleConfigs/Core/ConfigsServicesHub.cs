@@ -40,7 +40,7 @@ namespace SimpleConfigs.Core
             return AsyncUtilities.ForEachAsync<ConfigsService, string>(
                 _configsServices,
                 configType.FullName!,
-                async (value, context) => await value.InitializeConfigAsync(context, checkDataCorrectness, timeoutInMilliseconds),
+                async (value, context) => await value.InitializeConfigAsync(context, checkDataCorrectness),
                 inParallel).WaitAsync(timeoutInMilliseconds);
         }
 
