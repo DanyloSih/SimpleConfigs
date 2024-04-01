@@ -105,9 +105,9 @@ namespace SimpleConfigs.Core
 
         #region ServicesInstancesManagement
 
-        public IConfigsServicesHubMember CreateNewConfigsService()
+        public IConfigsServicesHubMember CreateNewConfigsService(params Type[] registeringConfigsTypes)
         {
-            var configsService = new ConfigsService(_serializer, _fileSystem, new Type[] { });
+            var configsService = new ConfigsService(_serializer, _fileSystem, registeringConfigsTypes);
             int id = _configsServices.Count;
 
             configsService.CommonRelativeDirectoryPath = Path.Combine(
