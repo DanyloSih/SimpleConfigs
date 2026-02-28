@@ -140,6 +140,127 @@ configsService.SetPathOverrideSettings<MainConfig>(
 
 ---
 
+## Additional Features
+
+### Registering with Path Settings
+
+You can register config types together with custom path settings using the second constructor:
+
+```csharp
+var configsService = new ConfigsService(
+    new JsonSerializationManager(),
+    new LocalFileSystem(),
+    (typeof(MainConfig), new PathSettings("Configs/Main", "main.cfg")),
+    (typeof(SomeOtherConfig), null) // uses default settings
+);
+```
+
+---
+
+### Dynamic Registration and Removal
+
+Configs can be registered or unregistered at runtime:
+
+```csharp
+configsService.RegisterConfigType(typeof(MainConfig).FullName, typeof(MainConfig).Assembly);
+configsService.UnregisterConfigType(typeof(MainConfig).FullName);
+```
+
+---
+
+### Common Directory for All Configs
+
+You can specify a common directory prefix for all config files:
+
+```csharp
+configsService.CommonRelativeDirectoryPath = "AllConfigs";
+```
+
+Final path pattern:
+
+```
+<ApplicationDirectory>/AllConfigs/<ConfigRelativePath>
+```
+
+---
+
+### Creating and Deleting Config Files
+
+```csharp
+await configsService.CreateConfigFileAsync(typeof(MainConfig).FullName);
+await configsService.DeleteConfigFileAsync(typeof(MainConfig).FullName);
+```
+
+---
+
+### Data Correctness Validation
+
+If a config implements `IDataCorrectnessChecker`, validation will be executed automatically during save/load operations.
+
+```csharp
+public class MainConfig : IDataCorrectnessChecker
+{
+    public int Port = 8080;
+
+    public Task CheckDataCorrectnessAsync()
+    {
+        if (Port <= 0)
+            throw new Exception("Invalid port");
+        return Task.CompletedTask;
+    }
+}
+```
+
+You can disable validation:
+
+```csharp
+await configsService.SaveConfigToFileAsync(typeof(MainConfig).FullName, checkDataCorrectness: false);
+```
+
+---
+
+### Serialization Lifecycle Hooks
+
+Configs implementing `ISerializationListner` receive callbacks:
+
+```csharp
+public class MainConfig : ISerializationListner
+{
+    public void OnBeforeSerialize()
+    {
+        // called before saving
+    }
+
+    public void OnAfterDeserialized()
+    {
+        // called after loading
+    }
+}
+```
+
+---
+
+### Operation Timeouts
+
+All operations have configurable timeouts:
+
+```csharp
+configsService.SerializationTimeoutInMilliseconds = 10000;
+configsService.DeserializationTimeoutInMilliseconds = 10000;
+configsService.FileWriteTimeoutInMilliseconds = 10000;
+```
+
+---
+
+### Accessing Registered Configs
+
+```csharp
+bool exists = configsService.IsConfigExist(typeof(MainConfig).FullName);
+var config = configsService.GetConfig(typeof(MainConfig).FullName);
+```
+
+---
+
 ## General Information
 
 ### ISerializationManager
