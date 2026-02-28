@@ -1,113 +1,151 @@
-## 🚀 About Me
-Hello, my - [linkedin](https://www.linkedin.com/in/danylo-sihaiev-33118a21b/)   
+# SimpleConfigs
 
-## Documentation
+A lightweight library for creating, loading, and saving application configuration files with support for multiple serialization formats via the `ISerializationManager` interface.
 
-### Target framework
+**NuGet:** https://www.nuget.org/packages/SimpleConfigs  
+**Target framework:** `.NET 8`
 
-Releases only on: `.Net8`
+---
 
-### Assemblies
+## Installation
 
-<div id="SimpleConfigs"></div>
+Install the core package:
 
-**SimpleConfigs** - The core library provides all necessary functional for configs creating, saving, loading etc. Don't have any external dependencies. But it not contains implementation for [`ISerializationManager`](#ISerializationManager) interface.
+```bash
+dotnet add package SimpleConfigs
+```
 
-<div id="SimpleConfigs.JSON"></div>
+For JSON support:
 
-**SimpleConfigs.JSON** - Contain implementation for [`ISerializationManager`](#ISerializationManager) interface, which give ability to serialize config in JSON format.
-Depends on: [`SimpleConfigs`](#SimpleConfigs), `Newtonsoft.JSON`.
+```bash
+dotnet add package SimpleConfigs.JSON
+```
 
-<div id="SimpleConfigs.Examples"></div>
+---
 
-**SimpleConfigs.Examples** - Contain using examples.
-Depends on all other assemblies in project exept [`SimpleConfigs.Test`](#SimpleConfigs.Test).
+## Project Structure
 
-<div id="SimpleConfigs.Test"></div>
+### SimpleConfigs
+Core library that provides functionality for creating, saving, and loading configs.  
+Has no external dependencies.  
+Does not include an implementation of the `ISerializationManager` interface.
 
-**SimpleConfigs.Test** - Contain tests for all other assemblies.
-Depends on all other assemblies in project exept [`SimpleConfigs.Examples`](#SimpleConfigs.Examples).
+### SimpleConfigs.JSON
+Provides a JSON implementation of `ISerializationManager`.  
+Dependencies: `SimpleConfigs`, `Newtonsoft.Json`.
 
-### Using
-For example, you have config class like this:
+### SimpleConfigs.Examples
+Contains usage examples.  
+Depends on all project assemblies except `SimpleConfigs.Test`.
 
-```C#
+### SimpleConfigs.Test
+Contains tests for all assemblies.  
+Depends on all assemblies except `SimpleConfigs.Examples`.
+
+---
+
+## Usage
+
+Example configuration class:
+
+```csharp
 public class MainConfig
 {
 	public string SomeUrl = "http://www.example.com/";
 	public int SomeValue = 456;
 }
 ```
-To save this config as file, or populate this object with data from file, you should use `ConfigsService` class. It takes [`ISerializationManager`](#ISerializationManager) as the first parameter. You can implement [`ISerializationManager`](#ISerializationManager) interface by yourself or use an existing assembly, for example we take [`SimpleConfigs.JSON`](#SimpleConfigs.JSON) assembly and his [`ISerializationManager`](#ISerializationManager) implementation `JsonSerializationManager`
 
-Configs registration example:
+To save this config to a file or populate the object from a file, use `ConfigsService`.  
+It requires an `ISerializationManager` as the first parameter.
 
-```C#
-// your function....
+You can implement the interface yourself or use an existing implementation, such as `SimpleConfigs.JSON`.
 
-// registering config type must have at least one parameterless constructor!
+### Config Registration
+
+`ConfigsService` can register one or multiple config types (passed as `Type` arguments).
+
+```csharp
 var configsService = new ConfigsService(
 	new JsonSerializationManager(), // ISerializationManager
-	new LocalFileSystem(), // IFileSystem
-	typeof(MainConfig) // registering config type
-	);
-	
-// this method will create config files that not exist now
-// and then load all existing config files data to configs instances.
-await configsService.InitializeAllConfigsAsync(); 
+	new LocalFileSystem(),          // IFileSystem
+	typeof(MainConfig),             // registered config type
+	typeof(SomeOtherConfig)         // another registered config type
+);
+
+// Creates missing config files
+// and loads data from existing files
+await configsService.InitializeAllConfigsAsync();
 ```
-```C#
-// now you can get data from config file
+
+### Working with Configs
+
+```csharp
 var mainConfigInstance = configsService.GetConfig<MainConfig>();
 Console.WriteLine($"{mainConfigInstance.SomeValue}"); // 456
 
-// change it (this example work only if config type is referenced type)
 mainConfigInstance.SomeValue = 15;
 
-// and save to file
 await configsService.SaveConfigToFileAsync<MainConfig>();
 ```
+
 ---
 
-You can specify config file relative directory path via `RelativePathAttribute`.
-If you don't specify an attribute for the config type, the default file folder will be the folder of your *running assembly*.
-```C#
-// config file will be generated in "running assembly folder"/Configs/Main
-[RelativePath("Configs/Main")] 
-public class MainConfig 
+## File Path and Name Configuration
+
+### Relative Path
+
+If not specified, the default folder is the directory of the running assembly.
+
+```csharp
+[RelativePath("Configs/Main")]
+public class MainConfig
 {
-	// your fields 
 }
 ```
-Also you can specify config file name via `ConfigNameAttribute`.
-If you don't specify it, the default file name will be: "Type name" + ".cfg"
 
-```C#
-// config file will have path:
-// "running assembly folder"/Configs/Main/MyConfigName.myFileExtension
+File path:  
+`<application folder>/Configs/Main/MainConfig.cfg`
+
+If the attribute is not specified, the file will be created in the running assembly directory with the default name `MainConfig.cfg`.
+
+---
+
+### File Name
+
+Default: `TypeName.cfg`
+
+```csharp
 [RelativePath("Configs/Main"), ConfigName("MyConfigName.myFileExtension")]
-public class MainConfig 
+public class MainConfig
 {
-	// your fields 
 }
 ```
 
-And you can override all path data above using `ConfigsService.SetPathOverrideSettings` method.
+File path:  
+`<application folder>/Configs/Main/MyConfigName.myFileExtension`
 
-```C#
-// config file will have path:
-// "running assembly folder"/Configs/Overrided/MyConfigName.myFileExtension
+---
+
+### Programmatic Path Override
+
+```csharp
 configsService.SetPathOverrideSettings<MainConfig>(
 	new PathSettings("Configs/Overrided", "MyConfigName.myFileExtension"));
 
-// config file will have path:
-// "running assembly folder"/"default MainConfig filename"
+// Reset to default
 configsService.SetPathOverrideSettings<MainConfig>(
 	new PathSettings(null, ""));
 ```
 
-### Common information
+---
 
-<div id="ISerializationManager"></div>
+## General Information
 
-**`ISerializationManager`** - This interface is responsible for converting config object data into a byte array that's will be written to a file. The implementation of this interface is not included in the main [`SimpleConfigs`](#SimpleConfigs) assembly to avoid creating unnecessary dependencies. You can implement this interface by yourself or use an existing assembly, for example: [`SimpleConfigs.JSON`](#SimpleConfigs.JSON).
+### ISerializationManager
+
+Responsible for converting a config object into a byte array to be written to a file.
+
+The implementation is not included in `SimpleConfigs` to avoid unnecessary dependencies.  
+You can implement it yourself or use an existing one, such as `SimpleConfigs.JSON`.
+
